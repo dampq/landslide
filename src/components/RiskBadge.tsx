@@ -1,0 +1,3 @@
+import {Badge} from "./ui";import {RiskLevel} from "../types";
+export const riskClass=(l:string)=>l==="Critical"?"bg-red-100 text-red-700":l==="High"?"bg-orange-100 text-orange-700":l==="Moderate"?"bg-amber-100 text-amber-700":"bg-emerald-100 text-emerald-700";
+export default function RiskBadge({level}:{level:RiskLevel|string}){return <Badge className={riskClass(level)}>{level.toUpperCase()}</Badge>}

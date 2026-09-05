@@ -1,0 +1,8 @@
+import {MapContainer,TileLayer,CircleMarker,Popup,Polyline} from "react-leaflet";import {risks,roads} from "../data/mock";import RiskBadge from "./RiskBadge";import {Button} from "./ui";
+const color=(l:string)=>l==="Critical"?"#dc2626":l==="High"?"#f97316":l==="Moderate"?"#eab308":"#16a34a";
+export default function RiskMap({compact=false}:{compact?:boolean}){return <div className={compact?"h-[330px]":"h-[calc(100vh-190px)] min-h-[520px]"}>
+<MapContainer center={[25.9,92.5]} zoom={6} scrollWheelZoom className="rounded-2xl">
+<TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
+{risks.map(r=><CircleMarker key={r.id} center={[r.lat,r.lng]} radius={Math.max(9,r.score/7)} pathOptions={{color:color(r.level),fillColor:color(r.level),fillOpacity:.72,weight:3}}><Popup><div className="min-w-[240px]"><div className="flex justify-between gap-3"><b>{r.name}</b><RiskBadge level={r.level}/></div><div className="text-xs text-slate-500">{r.district}, {r.state}</div><div className="my-2 text-2xl font-black">{r.score}/100</div><div className="grid grid-cols-2 gap-1 text-xs"><span>Rainfall</span><b>{r.rainfall} mm</b><span>Soil Moisture</span><b>{r.soil}%</b><span>Slope</span><b>{r.slope}°</b><span>Confidence</span><b>{r.confidence}%</b><span>Population</span><b>{r.population.toLocaleString()}</b><span>Road</span><b>{r.road}</b></div><Button className="mt-3 w-full">View Full Risk Analysis</Button></div></Popup></CircleMarker>)}
+<Polyline positions={[[27.338,88.607],[26.7,88.3],[26.2,88.1]]} pathOptions={{color:"#dc2626",weight:5,dashArray:"8 8"}}/>
+</MapContainer></div>}
