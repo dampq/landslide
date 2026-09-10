@@ -1,4 +1,4 @@
-# NER-SURAKSHA
+# Ashtaraksha
 Frontend-only Smart India Hackathon demo for an AI-based early-warning and landslide risk monitoring system for North East India.
 
 ## Run
