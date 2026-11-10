@@ -6,7 +6,7 @@ This is a student demonstration and decision-support project, not an operational
 
 ## Quick start
 
-Requirements: Node.js 22.12+ (24 tested), Python 3.10+ (3.12 tested), Docker with Compose, and ports 5433, 8000 and 5173 available. Commands below run from the repository root unless stated otherwise.
+Requirements: Node.js 22.12+ (24 tested), Python 3.12, Docker with Compose, and ports 5433, 8000 and 5173 available. Commands below run from the repository root unless stated otherwise.
 
 ```bash
 npm ci
@@ -102,3 +102,5 @@ bash scripts/setup.sh --demo && npm run dev:all
 Open port **5173** from the **Ports** panel. Keep its visibility private. Ports 8000 and 5433 do not need browser forwarding. The combined start command automatically trusts this Codespace's exact forwarded website origin, enables HTTPS cookies, binds Vite for forwarding and configures its development WebSocket. No manual `APP_ORIGINS` export is needed for standard Codespaces addresses.
 
 The setup script keeps npm's cache in the ignored `.cache/npm` folder inside the checkout; it does not need permission to create `/workspace`. If an older failed install left partial `node_modules`, stop other installation processes and rerun the setup command. `npm ci` refreshes generated dependencies; no application data or database volume needs deleting. Wait for setup to succeed before starting the app (`&&` enforces this).
+
+The setup script uses **Python 3.12**, even if Codespaces defaults to Python 3.14. It reuses an installed 3.12 interpreter or downloads a project-local runtime using uv with TLS/checksum verification enabled. An incompatible `backend/.venv` is moved to an ignored `backend/.venv-backup-*` folder before creating the correct environment. No database data is removed. The old environment can be deleted later when no longer needed.

@@ -14,3 +14,4 @@ test-results/
 backend/models/
 
 .cache/
+backend/.venv-backup-*/
