@@ -3,7 +3,7 @@
 import argparse
 import getpass
 from sqlalchemy import select
-from api.db import Session, User, Record, migrate
+from api.db import Session, User, Record, migrate, wait_for_database
 from api.security import hash_password, audit
 
 STATES = [
@@ -143,6 +143,7 @@ def main():
     parser = argparse.ArgumentParser()
     subs = parser.add_subparsers(dest="command", required=True)
     subs.add_parser("migrate")
+    subs.add_parser("wait-db")
     subs.add_parser("seed-demo")
     create = subs.add_parser("create-user")
     create.add_argument("email")
@@ -154,6 +155,13 @@ def main():
     promote.add_argument("email")
     promote.add_argument("role", choices=["citizen", "official", "admin"])
     args = parser.parse_args()
+    if args.command == "wait-db":
+        try:
+            wait_for_database()
+        except RuntimeError as exc:
+            raise SystemExit(str(exc)) from None
+        print("PostgreSQL accepts authenticated application connections.")
+        return
     if args.command == "migrate":
         migrate()
         print("PostgreSQL/PostGIS migration 1 applied.")

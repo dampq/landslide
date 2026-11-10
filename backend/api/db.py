@@ -14,6 +14,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.pool import NullPool
 
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
@@ -126,3 +128,35 @@ def migrate():
                 "INSERT INTO schema_migrations(version) VALUES (1) ON CONFLICT DO NOTHING"
             )
         )
+
+
+def wait_for_database(timeout=60, interval=1):
+    """Probe the application's real TCP/credential path, not the init Unix socket."""
+    probe = create_engine(
+        DATABASE_URL, connect_args={"connect_timeout": 3}, poolclass=NullPool
+    )
+    deadline = time.monotonic() + timeout
+    announced = False
+    try:
+        while True:
+            try:
+                with probe.connect() as conn:
+                    conn.execute(text("SELECT 1"))
+                return
+            except OperationalError:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise RuntimeError(
+                        "PostgreSQL did not accept an authenticated application connection. "
+                        "Inspect docker compose logs --tail=80 db and verify DATABASE_URL. "
+                        "Do not delete the database volume."
+                    ) from None
+                if not announced:
+                    print(
+                        "Waiting for PostgreSQL to accept an authenticated connection...",
+                        flush=True,
+                    )
+                    announced = True
+                time.sleep(min(interval, remaining))
+    finally:
+        probe.dispose()

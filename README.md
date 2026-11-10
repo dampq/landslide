@@ -14,7 +14,7 @@ python3 -m venv backend/.venv
 backend/.venv/bin/python -m pip install -r backend/requirements.lock
 docker compose up -d db
 # Wait for database readiness; repeat until the health check succeeds.
-docker compose exec -T db pg_isready -U ashtaraksha -d ashtaraksha
+docker compose exec -T db pg_isready -h 127.0.0.1 -U ashtaraksha -d ashtaraksha
 cd backend
 .venv/bin/python manage.py migrate
 # Optional, repeatable, clearly labelled demonstration records for all 8 NE states:
@@ -106,3 +106,5 @@ The setup script keeps npm's cache in the ignored `.cache/npm` folder inside the
 The setup script uses **Python 3.12**, even if Codespaces defaults to Python 3.14. It reuses an installed 3.12 interpreter or downloads a project-local runtime using uv with TLS/checksum verification enabled. An incompatible `backend/.venv` is moved to an ignored `backend/.venv-backup-*` folder before creating the correct environment. No database data is removed. The old environment can be deleted later when no longer needed.
 
 On minimal Debian/Ubuntu interpreters, `ensurepip` may be absent. Setup uses `uv venv --seed`, which installs pip without the OS `python3.12-venv` package. If uv is missing, a standard-library bootstrap downloads its official PyPI wheel over HTTPS and checks its published SHA-256 before extracting the executable. Incomplete virtual environments without pip are repaired automatically on rerun. No sudo or system-package changes are needed.
+
+For a freshly created PostgreSQL volume, setup waits for an authenticated connection through the application's configured `DATABASE_URL` before migrating. The image's temporary initialization server may accept local socket connections before its mapped TCP port is ready; container startup alone is not sufficient. You can rerun the check directly with `cd backend && .venv/bin/python manage.py wait-db`. Do not delete the database volume to resolve a startup delay.
