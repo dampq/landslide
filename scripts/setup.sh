@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-npm ci --cache /workspace/.npm-cache --no-audit --no-fund
+npm ci --cache "$PWD/.cache/npm" --no-audit --no-fund
 if [ ! -x backend/.venv/bin/python ]; then python3 -m venv backend/.venv; fi
 backend/.venv/bin/python -m pip install --no-cache-dir -r backend/requirements.lock
 docker compose up -d db

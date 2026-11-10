@@ -90,3 +90,15 @@ API tests cover authentication/permissions, CSRF origin checks, report privacy a
 Export environment variables before starting the backend; see `backend/.env.example`. No automatic `.env` loading is performed. The local database password in Compose is a development default, bound to loopback; set a private password and matching `DATABASE_URL` for any shared deployment. The database URL must use `postgresql+psycopg://`.
 
 Live forecast requests require `api.open-meteo.com`; map tiles require `tile.openstreetmap.org`. Optional external source portals have their own access terms. In restricted cloud environments, allow those exact domains in environment settings. If they are blocked, the application remains demonstrable using labelled synthetic weather/geographic records; live refresh reports the failure.
+
+## GitHub Codespaces
+
+Create a Codespace from this repository, wait for its initial setup to finish, then run these commands in one terminal:
+
+```bash
+bash scripts/setup.sh --demo && npm run dev:all
+```
+
+Open port **5173** from the **Ports** panel. Keep its visibility private. Ports 8000 and 5433 do not need browser forwarding. The combined start command automatically trusts this Codespace's exact forwarded website origin, enables HTTPS cookies, binds Vite for forwarding and configures its development WebSocket. No manual `APP_ORIGINS` export is needed for standard Codespaces addresses.
+
+The setup script keeps npm's cache in the ignored `.cache/npm` folder inside the checkout; it does not need permission to create `/workspace`. If an older failed install left partial `node_modules`, stop other installation processes and rerun the setup command. `npm ci` refreshes generated dependencies; no application data or database volume needs deleting. Wait for setup to succeed before starting the app (`&&` enforces this).

@@ -1,6 +1,9 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { existsSync } from "node:fs";
+import { codespacesHost, developmentEnvironment } from "./codespaces.mjs";
+const env = developmentEnvironment();
+const frontendHost = codespacesHost() ? "0.0.0.0" : "127.0.0.1";
 const root = process.cwd();
 const python = resolve(
   root,
@@ -17,13 +20,13 @@ if (!existsSync(python)) {
 const children = [
   spawn(
     process.platform === "win32" ? "npm.cmd" : "npm",
-    ["run", "dev", "--", "--host", "127.0.0.1", "--strictPort"],
-    { cwd: root, stdio: "inherit" },
+    ["run", "dev", "--", "--host", frontendHost, "--strictPort"],
+    { cwd: root, stdio: "inherit", env },
   ),
   spawn(
     python,
     ["-m", "uvicorn", "api.main:app", "--host", "127.0.0.1", "--port", "8000"],
-    { cwd: resolve(root, "backend"), stdio: "inherit" },
+    { cwd: resolve(root, "backend"), stdio: "inherit", env },
   ),
 ];
 let stopping = false;
