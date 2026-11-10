@@ -326,5 +326,18 @@
   "Student decision support; requires official review. This is not an operational public warning.": "শিক্ষাৰ্থীৰ সিদ্ধান্ত-সহায়; বিষয়াৰ পৰ্যালোচনা লাগে। ই চৰকাৰী ৰাজহুৱা সতৰ্কবাণী নহয়।",
   "Rainfall past 24h (mm)": "বিগত ২৪ ঘণ্টাৰ বৰষুণ (মিমি)",
   "Soil saturation (%)": "মাটিৰ সংপৃক্ততা (%)",
-  "Historical event count": "ঐতিহাসিক ঘটনাৰ সংখ্যা"
+  "Historical event count": "ঐতিহাসিক ঘটনাৰ সংখ্যা",
+  "Enter your name.": "আপোনাৰ নাম দিয়ক।",
+  "Enter a valid email address.": "বৈধ ইমেইল ঠিকনা দিয়ক।",
+  "Enter your password.": "আপোনাৰ পাছৱৰ্ড দিয়ক।",
+  "Use at least 12 characters for a new account password.": "নতুন একাউণ্টৰ পাছৱৰ্ডত অন্ততঃ ১২টা আখৰ ৰাখক।",
+  "Password must contain no more than 128 characters.": "পাছৱৰ্ডত সৰ্বাধিক ১২৮টা আখৰ থাকিব পাৰে।",
+  "Enter the password for your registered account.": "আপোনাৰ পঞ্জীয়নভুক্ত একাউণ্টৰ পাছৱৰ্ড দিয়ক।",
+  "The sign-in service is taking too long. Please try again.": "প্ৰৱেশ সেৱাত অধিক সময় লাগিছে। পুনৰ চেষ্টা কৰক।",
+  "Your account was created. Sign in with your email and password if automatic sign-in does not finish.": "আপোনাৰ একাউণ্ট সৃষ্টি হৈছে। স্বয়ংক্ৰিয় প্ৰৱেশ সম্পূৰ্ণ নহ'লে আপোনাৰ ইমেইল আৰু পাছৱৰ্ডেৰে প্ৰৱেশ কৰক।",
+  "Your browser did not retain the sign-in session. Open this website in a normal browser tab and allow cookies for this site.": "আপোনাৰ ব্ৰাউজাৰে প্ৰৱেশ সত্ৰ সংৰক্ষণ নকৰিলে। ৱেবছাইটটো সাধাৰণ ব্ৰাউজাৰ টেবত খোলক আৰু এই ছাইটৰ কুকিজৰ অনুমতি দিয়ক।",
+  "The sign-in session changed. Please try again.": "প্ৰৱেশ সত্ৰ সলনি হৈছে। পুনৰ চেষ্টা কৰক।",
+  "Sign-in is temporarily unavailable. Please retry shortly.": "প্ৰৱেশ এতিয়া উপলব্ধ নহয়। অলপ পিছত পুনৰ চেষ্টা কৰক।",
+  "Cannot connect to the sign-in service. Check your connection and try again.": "প্ৰৱেশ সেৱাৰ সৈতে সংযোগ নহ'ল। সংযোগ পৰীক্ষা কৰি পুনৰ চেষ্টা কৰক।",
+  "Untrusted request origin": "এই ৱেবছাইট ঠিকনাৰ পৰা অনুৰোধৰ অনুমতি নাই। সঠিক আগবঢ়োৱা প'ৰ্ট সাধাৰণ ব্ৰাউজাৰ টেবত খোলক।"
 }

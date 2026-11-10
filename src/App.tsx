@@ -165,32 +165,113 @@ function Shell() {
     </div>
   );
 }
+async function authRequest<T = Account>(
+  path: string,
+  body?: Record<string, string>,
+): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    return await api<T>(path, {
+      method: body ? "POST" : "GET",
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted)
+      throw new Error(
+        "The sign-in service is taking too long. Please try again.",
+      );
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 function Auth() {
   const { setAccount, t, lang, setLang } = useApp();
   const [register, setRegister] = useState(false),
     [error, setError] = useState(""),
+    [notice, setNotice] = useState(""),
+    [invalidField, setInvalidField] = useState(""),
     [busy, setBusy] = useState(false);
   const nav = useNavigate();
+  function showError(message: string, form: HTMLFormElement, field = "") {
+    setError(message);
+    setInvalidField(field);
+    const input = form.elements.namedItem(field);
+    if (input instanceof HTMLElement) input.focus();
+    requestAnimationFrame(() =>
+      document
+        .getElementById("auth-error")
+        ?.scrollIntoView({ block: "nearest" }),
+    );
+  }
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setBusy(true);
+    if (busy) return;
+    const form = e.currentTarget;
+    const fields = new FormData(form);
+    const email = String(fields.get("email") || "")
+      .trim()
+      .toLowerCase();
+    const password = String(fields.get("password") || "");
+    const name = String(fields.get("name") || "").trim();
     setError("");
-    const data = Object.fromEntries(new FormData(e.currentTarget));
+    setNotice("");
+    setInvalidField("");
+    if (register && !name) return showError("Enter your name.", form, "name");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254)
+      return showError("Enter a valid email address.", form, "email");
+    if (!password) return showError("Enter your password.", form, "password");
+    if (register && password.length < 12)
+      return showError(
+        "Use at least 12 characters for a new account password.",
+        form,
+        "password",
+      );
+    if (password.length > 128)
+      return showError(
+        "Password must contain no more than 128 characters.",
+        form,
+        "password",
+      );
+    setBusy(true);
     try {
       await flushPendingLogout();
-      if (register)
-        await api("/api/auth/register", {
-          method: "POST",
-          body: JSON.stringify(data),
-        });
-      const a = await api<Account>("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      setAccount(a);
+      if (register) {
+        await authRequest("/api/auth/register", { email, password, name });
+        setNotice(
+          "Your account was created. Sign in with your email and password if automatic sign-in does not finish.",
+        );
+        setRegister(false);
+      }
+      const account = await authRequest("/api/auth/login", { email, password });
+      // Do not report success if third-party/embedded-browser settings blocked the cookie.
+      let session: Account;
+      try {
+        session = await authRequest("/api/auth/me");
+      } catch (error) {
+        if ((error as Error & { status?: number }).status === 401)
+          throw new Error(
+            "Your browser did not retain the sign-in session. Open this website in a normal browser tab and allow cookies for this site.",
+          );
+        throw error;
+      }
+      if (session.id !== account.id)
+        throw new Error("The sign-in session changed. Please try again.");
+      setAccount(session);
       nav("/");
-    } catch (e) {
-      setError((e as Error).message);
+    } catch (error) {
+      const issue = error as Error & { status?: number };
+      const message =
+        issue.status && issue.status >= 500
+          ? "Sign-in is temporarily unavailable. Please retry shortly."
+          : issue.name === "AbortError"
+            ? "The sign-in service is taking too long. Please try again."
+            : issue.message === "Failed to fetch"
+              ? "Cannot connect to the sign-in service. Check your connection and try again."
+              : issue.message;
+      showError(message, form);
     } finally {
       setBusy(false);
     }
@@ -238,7 +319,17 @@ function Auth() {
           <h2 className="mb-5 text-2xl font-black">
             {t(register ? "Create account" : "Sign in")}
           </h2>
-          <form className="space-y-4" onSubmit={submit}>
+          {notice && (
+            <div className="success mb-4" role="status">
+              {t(notice)}
+            </div>
+          )}
+          <form className="space-y-4" onSubmit={submit} noValidate>
+            {error && (
+              <div id="auth-error" className="error" role="alert">
+                <RequestError message={error} />
+              </div>
+            )}
             {register && (
               <label className="field">
                 {t("Name")}
@@ -247,12 +338,25 @@ function Auth() {
                   required
                   maxLength={100}
                   autoComplete="name"
+                  aria-invalid={invalidField === "name" || undefined}
+                  aria-describedby={
+                    invalidField === "name" ? "auth-error" : undefined
+                  }
                 />
               </label>
             )}
             <label className="field">
               {t("Email")}
-              <Input name="email" type="email" required autoComplete="email" />
+              <Input
+                name="email"
+                type="email"
+                required
+                autoComplete="email"
+                aria-invalid={invalidField === "email" || undefined}
+                aria-describedby={
+                  invalidField === "email" ? "auth-error" : undefined
+                }
+              />
             </label>
             <label className="field">
               {t("Password")}
@@ -261,27 +365,35 @@ function Auth() {
                 name="password"
                 type="password"
                 required
-                minLength={12}
+                minLength={register ? 12 : undefined}
                 maxLength={128}
+                aria-invalid={invalidField === "password" || undefined}
+                aria-describedby={
+                  invalidField === "password" ? "auth-error" : "password-help"
+                }
                 autoComplete={register ? "new-password" : "current-password"}
               />
-              <small>{t("Minimum 12 characters")}</small>
+              <small id="password-help">
+                {t(
+                  register
+                    ? "Minimum 12 characters"
+                    : "Enter the password for your registered account.",
+                )}
+              </small>
             </label>
-            {error && (
-              <div className="error" role="alert">
-                <RequestError message={error} />
-              </div>
-            )}
             <Button type="submit" disabled={busy} className="w-full">
               {busy ? t("Loading…") : t(register ? "Register" : "Sign in")}
             </Button>
           </form>
           <Button
             variant="ghost"
+            disabled={busy}
             className="mt-4 w-full"
             onClick={() => {
               setRegister(!register);
               setError("");
+              setNotice("");
+              setInvalidField("");
             }}
           >
             {t(register ? "Back to sign in" : "Create account")}

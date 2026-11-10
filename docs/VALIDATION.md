@@ -7,9 +7,9 @@ Validated on 10 November 2026 in the provided Linux cloud environment using Node
 | Command                                       | Observed result                                                                                                                                   |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `npm run build`                               | TypeScript checking, production bundling and PWA worker generation passed                                                                         |
-| `backend/.venv/bin/python -m pytest tests -q` | **36 passed**, no failures/skips; one upstream TestClient/AnyIO deprecation warning                                                               |
-| `npm run test:e2e`                            | **14 browser workflows passed**, no failures/skips, against the built PWA and an isolated PostgreSQL database                                     |
-| `npm run check:i18n`                          | **328 interface keys in all 3 languages**; no raw English JSX text, missing keys or mismatched interpolation placeholders in the audited UI files |
+| `backend/.venv/bin/python -m pytest tests -q` | **37 passed**, no failures/skips; one upstream TestClient/AnyIO deprecation warning                                                               |
+| `npm run test:e2e`                            | **20 browser workflows passed**, no failures/skips, against the built PWA and an isolated PostgreSQL database                                     |
+| `npm run check:i18n`                          | **341 interface keys in all 3 languages**; no raw English JSX text, missing keys or mismatched interpolation placeholders in the audited UI files |
 | `npm run test:config`                         | **4 passed**: local/Codespaces origin and cookie configuration, custom forwarding and invalid-host rejection                                      |
 | `python3 scripts/prepare-reference-map.py`    | Rebuilt **16 reference features**, including all **8 NE states**, from recorded SHA-256-verified Natural Earth source datasets                    |
 | `git diff --check`                            | Passed                                                                                                                                            |
@@ -33,6 +33,13 @@ The earlier setup corrections were also exercised: writable project-local npm ca
 13. Successful tile responses render the online layer with OpenStreetMap attribution; switching back restores the regional reference.
 14. Cancelling replacement of a cached live forecast sends no sample request, preserves the live view and does not claim a save.
 
+15. Empty/invalid account fields and short registration passwords produce visible in-page errors; short incorrect sign-in passwords reach authentication and return an explicit credentials error.
+16. A new citizen registers through the actual page, reaches the dashboard, retains the session after reload, signs out and signs in again.
+17. A blocked session cookie produces an actionable message rather than a dashboard/sign-in bounce.
+18. An unavailable sign-in service returns a readable error and the same form can retry successfully.
+19. A stalled sign-in request times out and restores the submit button.
+20. If registration succeeds but automatic sign-in fails, account creation remains confirmed and sign-in can be retried without registering again.
+
 External-provider success/failure browser cases use controlled responses. They validate website behaviour, not successful real third-party access.
 
 ## What is real, simulated, optional or unverified
@@ -47,3 +54,7 @@ External-provider success/failure browser cases use controlled responses. They v
 - **Cloud publication:** repository setup/start instructions are saved in Git. The separate cloud configuration draft service previously returned `INVALID_ARGUMENT`; no persisted cloud draft, published snapshot or public deployment is claimed.
 
 The website is validated for the permitted student demonstration using labelled data. This is not evidence of operational warning accuracy, disaster outcomes, universal browser compatibility or a production security audit.
+
+## Authentication repair
+
+The reported “nothing happens” behaviour was reproduced: the original browser-native minimum-password check stopped submission before the submit handler, producing zero sign-in requests and no in-page error. The form now validates explicitly and accessibly inside the page. Registration maintains the 12-character minimum; sign-in accepts a nonempty attempt and relies on password verification/rate limits. Registration and login have separate validated schemas. The browser session is confirmed before opening the dashboard; cookie/origin protections remain in place. No claim is made that every external Codespaces browser/session configuration has been tested.

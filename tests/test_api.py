@@ -712,3 +712,58 @@ def test_malformed_live_weather_cannot_corrupt_existing_cache(actors, monkeypatc
         == 502
     )
     assert actors["official"].get("/api/weather/demo-location-0").json() == before
+
+
+def test_registration_policy_does_not_silently_block_short_login_attempts():
+    c = TestClient(app)
+    assert (
+        c.post(
+            "/api/auth/register",
+            json={
+                "email": "short-policy@example.test",
+                "name": "Policy check",
+                "password": "short",
+            },
+        ).status_code
+        == 422
+    )
+    assert (
+        c.post(
+            "/api/auth/login",
+            json={"email": "short-policy@example.test", "password": "short"},
+        ).status_code
+        == 401
+    )
+    assert (
+        c.post(
+            "/api/auth/register",
+            json={"email": "short-policy@example.test", "password": PASSWORD},
+        ).status_code
+        == 422
+    )
+    assert (
+        c.post(
+            "/api/auth/register",
+            json={
+                "email": "short-policy@example.test",
+                "name": "Policy check",
+                "password": PASSWORD,
+            },
+        ).status_code
+        == 201
+    )
+    assert (
+        c.post(
+            "/api/auth/login",
+            json={"email": "short-policy@example.test", "password": "short"},
+        ).status_code
+        == 401
+    )
+    assert (
+        c.post(
+            "/api/auth/login",
+            json={"email": "short-policy@example.test", "password": PASSWORD},
+        ).status_code
+        == 200
+    )
+    assert c.get("/api/auth/me").json()["role"] == "citizen"

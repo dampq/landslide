@@ -326,5 +326,18 @@
   "Student decision support; requires official review. This is not an operational public warning.": "छात्र निर्णय-सहायता; अधिकारी की समीक्षा आवश्यक है। यह आधिकारिक सार्वजनिक चेतावनी नहीं है।",
   "Rainfall past 24h (mm)": "पिछले 24 घंटे की वर्षा (मिमी)",
   "Soil saturation (%)": "मिट्टी की संतृप्ति (%)",
-  "Historical event count": "ऐतिहासिक घटनाओं की संख्या"
+  "Historical event count": "ऐतिहासिक घटनाओं की संख्या",
+  "Enter your name.": "अपना नाम दर्ज करें।",
+  "Enter a valid email address.": "मान्य ईमेल पता दर्ज करें।",
+  "Enter your password.": "अपना पासवर्ड दर्ज करें।",
+  "Use at least 12 characters for a new account password.": "नए खाते के पासवर्ड में कम से कम 12 अक्षर रखें।",
+  "Password must contain no more than 128 characters.": "पासवर्ड में अधिकतम 128 अक्षर हो सकते हैं।",
+  "Enter the password for your registered account.": "अपने पंजीकृत खाते का पासवर्ड दर्ज करें।",
+  "The sign-in service is taking too long. Please try again.": "लॉगिन सेवा में अधिक समय लग रहा है। फिर प्रयास करें।",
+  "Your account was created. Sign in with your email and password if automatic sign-in does not finish.": "आपका खाता बन गया है। स्वचालित लॉगिन पूरा न हो तो अपने ईमेल और पासवर्ड से प्रवेश करें।",
+  "Your browser did not retain the sign-in session. Open this website in a normal browser tab and allow cookies for this site.": "आपके ब्राउज़र ने लॉगिन सत्र सहेजा नहीं। वेबसाइट सामान्य ब्राउज़र टैब में खोलें और इस साइट की कुकीज़ की अनुमति दें।",
+  "The sign-in session changed. Please try again.": "लॉगिन सत्र बदल गया है। फिर प्रयास करें।",
+  "Sign-in is temporarily unavailable. Please retry shortly.": "लॉगिन अभी उपलब्ध नहीं है। थोड़ी देर बाद फिर प्रयास करें।",
+  "Cannot connect to the sign-in service. Check your connection and try again.": "लॉगिन सेवा से कनेक्शन नहीं बन पाया। अपना कनेक्शन जाँचकर फिर प्रयास करें।",
+  "Untrusted request origin": "इस वेबसाइट पते से अनुरोध की अनुमति नहीं है। सही अग्रेषित पोर्ट को सामान्य ब्राउज़र टैब में खोलें।"
 }

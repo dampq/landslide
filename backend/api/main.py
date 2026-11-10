@@ -172,11 +172,15 @@ async def security_headers(request: Request, call_next):
     return response
 
 
-class Credentials(BaseModel):
+class LoginCredentials(BaseModel):
     email: str = Field(min_length=3, max_length=254)
-    password: str = Field(min_length=12, max_length=128)
-    name: str = Field(default="", max_length=100)
+    password: str = Field(min_length=1, max_length=128)
     model_config = ConfigDict(extra="forbid")
+
+
+class RegistrationCredentials(LoginCredentials):
+    password: str = Field(min_length=12, max_length=128)
+    name: str = Field(min_length=1, max_length=100)
 
 
 class ReportInput(BaseModel):
@@ -328,7 +332,7 @@ def sources():
 
 
 @app.post("/api/auth/register", status_code=201)
-def register(body: Credentials, db=Depends(db_session)):
+def register(body: RegistrationCredentials, db=Depends(db_session)):
     email = body.email.strip().lower()
     if "@" not in email or "." not in email.split("@")[-1] or not body.name.strip():
         raise HTTPException(422, "A valid email and name are required")
@@ -350,7 +354,7 @@ def register(body: Credentials, db=Depends(db_session)):
 
 
 @app.post("/api/auth/login")
-def login(body: Credentials, response: Response, db=Depends(db_session)):
+def login(body: LoginCredentials, response: Response, db=Depends(db_session)):
     email = body.email.strip().lower()
     key = hashlib.sha256(email.encode()).hexdigest()
     db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:key))"), {"key": key})

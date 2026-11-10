@@ -716,3 +716,209 @@ test("cancelling sample replacement preserves the live view and never reports a 
   ).toHaveCount(0);
   expect(sampleRequests).toBe(0);
 });
+
+test("sign-in and registration always show in-page validation instead of silently blocking submission", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  let registrationRequests = 0;
+  page.on("request", (r) => {
+    if (r.url().endsWith("/api/auth/register") && r.method() === "POST")
+      registrationRequests++;
+  });
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Enter a valid email address.",
+  );
+  await page.getByLabel("Email", { exact: true }).fill("not-an-email");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Enter a valid email address.",
+  );
+  await page.getByLabel("Email", { exact: true }).fill("citizen@e2e.test");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Enter your password.");
+  await page.getByLabel("Password", { exact: true }).fill("short");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Invalid email or password",
+  );
+  await page
+    .getByRole("button", { name: "Create account", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Register", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Enter your name.");
+  await page.getByLabel("Name", { exact: true }).fill("Browser validation");
+  await page.getByRole("button", { name: "Register", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Use at least 12 characters",
+  );
+  expect(registrationRequests).toBe(0);
+  await page.locator("header select").selectOption("hi");
+  await expect(page.getByRole("alert")).toContainText("नए खाते के पासवर्ड");
+});
+
+test("a new citizen registers through the real form, retains the session across reload, and signs in again", async ({
+  page,
+  context,
+}) => {
+  const email = "ui-registration-check@e2e.test";
+  await page.goto("/login");
+  await page
+    .getByRole("button", { name: "Create account", exact: true })
+    .click();
+  await page
+    .getByLabel("Name", { exact: true })
+    .fill("UI registration citizen");
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("browser-registration-password");
+  await page.getByRole("button", { name: "Register", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Dashboard", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("UI registration citizen", { exact: true }),
+  ).toBeVisible();
+  const cookie = (await context.cookies()).find(
+    (c) => c.name === "ashtaraksha_session",
+  );
+  expect(cookie?.httpOnly).toBe(true);
+  expect(cookie?.sameSite).toBe("Strict");
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Dashboard", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Sign in", exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("browser-registration-password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Dashboard", exact: true }),
+  ).toBeVisible();
+});
+
+test("blocked session cookies produce a clear error rather than a dashboard/sign-in loop", async ({
+  page,
+}) => {
+  await page.route("**/api/auth/login", async (route) => {
+    const response = await route.fetch();
+    const headers = { ...response.headers() };
+    delete headers["set-cookie"];
+    // route.fetch uses Playwright's shared cookie jar; remove that side effect
+    // as well as the browser response header to simulate an actual cookie block.
+    await page.context().clearCookies({ name: "ashtaraksha_session" });
+    await route.fulfill({ response, headers });
+  });
+  await page.goto("/login");
+  await page.getByLabel("Email", { exact: true }).fill("citizen@e2e.test");
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("e2e-test-password-only");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Your browser did not retain the sign-in session",
+  );
+  await expect(
+    page.getByRole("heading", { name: "Sign in", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Sign in", exact: true }),
+  ).toBeEnabled();
+});
+
+test("a sign-in service failure is actionable and the form can be retried", async ({
+  page,
+}) => {
+  await page.route("**/api/auth/login", (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "text/plain",
+      body: "Temporarily unavailable",
+    }),
+  );
+  await page.goto("/login");
+  await page.getByLabel("Email", { exact: true }).fill("citizen@e2e.test");
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("e2e-test-password-only");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Sign-in is temporarily unavailable.",
+  );
+  await expect(
+    page.getByRole("button", { name: "Sign in", exact: true }),
+  ).toBeEnabled();
+  await page.unroute("**/api/auth/login");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Dashboard", exact: true }),
+  ).toBeVisible();
+});
+
+test("a stalled sign-in request times out with a visible message and restores the submit button", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await page.clock.install();
+  await page.route("**/api/auth/login", () => {});
+  await page.getByLabel("Email", { exact: true }).fill("citizen@e2e.test");
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("e2e-test-password-only");
+  const request = page.waitForRequest(
+    (r) => r.url().endsWith("/api/auth/login") && r.method() === "POST",
+  );
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await request;
+  await page.clock.fastForward(15001);
+  await expect(page.getByRole("alert")).toContainText(
+    "The sign-in service is taking too long.",
+  );
+  await expect(
+    page.getByRole("button", { name: "Sign in", exact: true }),
+  ).toBeEnabled();
+});
+
+test("successful registration remains clearly confirmed when automatic sign-in fails, and retry uses the created account", async ({
+  page,
+}) => {
+  await page.route("**/api/auth/login", (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "text/plain",
+      body: "Temporarily unavailable",
+    }),
+  );
+  await page.goto("/login");
+  await page
+    .getByRole("button", { name: "Create account", exact: true })
+    .click();
+  await page
+    .getByLabel("Name", { exact: true })
+    .fill("Registration retry citizen");
+  await page
+    .getByLabel("Email", { exact: true })
+    .fill("registration-retry@e2e.test");
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("browser-registration-password");
+  await page.getByRole("button", { name: "Register", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Your account was created.",
+  );
+  await expect(page.getByRole("alert")).toContainText(
+    "Sign-in is temporarily unavailable.",
+  );
+  await page.unroute("**/api/auth/login");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Dashboard", exact: true }),
+  ).toBeVisible();
+});

@@ -326,5 +326,18 @@
   "Student decision support; requires official review. This is not an operational public warning.": "Student decision support; requires official review. This is not an operational public warning.",
   "Rainfall past 24h (mm)": "Rainfall past 24h (mm)",
   "Soil saturation (%)": "Soil saturation (%)",
-  "Historical event count": "Historical event count"
+  "Historical event count": "Historical event count",
+  "Enter your name.": "Enter your name.",
+  "Enter a valid email address.": "Enter a valid email address.",
+  "Enter your password.": "Enter your password.",
+  "Use at least 12 characters for a new account password.": "Use at least 12 characters for a new account password.",
+  "Password must contain no more than 128 characters.": "Password must contain no more than 128 characters.",
+  "Enter the password for your registered account.": "Enter the password for your registered account.",
+  "The sign-in service is taking too long. Please try again.": "The sign-in service is taking too long. Please try again.",
+  "Your account was created. Sign in with your email and password if automatic sign-in does not finish.": "Your account was created. Sign in with your email and password if automatic sign-in does not finish.",
+  "Your browser did not retain the sign-in session. Open this website in a normal browser tab and allow cookies for this site.": "Your browser did not retain the sign-in session. Open this website in a normal browser tab and allow cookies for this site.",
+  "The sign-in session changed. Please try again.": "The sign-in session changed. Please try again.",
+  "Sign-in is temporarily unavailable. Please retry shortly.": "Sign-in is temporarily unavailable. Please retry shortly.",
+  "Cannot connect to the sign-in service. Check your connection and try again.": "Cannot connect to the sign-in service. Check your connection and try again.",
+  "Untrusted request origin": "This website address is not authorised for sign-in. Open the correct forwarded port in a normal browser tab, or contact the administrator."
 }

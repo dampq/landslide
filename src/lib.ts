@@ -203,10 +203,17 @@ export async function flushPendingLogout() {
   if (!localStorage.getItem("ashtaraksha-logout-pending")) return;
   if (pendingLogout) return pendingLogout;
   pendingLogout = (async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
     try {
-      await api("/api/auth/logout", { method: "POST" });
+      await api("/api/auth/logout", {
+        method: "POST",
+        signal: controller.signal,
+      });
     } catch (e) {
       if ((e as Error & { status?: number }).status !== 401) throw e;
+    } finally {
+      clearTimeout(timer);
     }
     localStorage.removeItem("ashtaraksha-logout-pending");
   })();

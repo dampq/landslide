@@ -138,3 +138,9 @@ cd backend
 The read-only command checks PostgreSQL/PostGIS and an actual Open-Meteo response, without printing credentials or changing records. It exits nonzero when the live provider cannot be verified; this does not disable labelled demonstrations. Tile authorization must be checked in the real browser, not inferred from a server-side probe.
 
 See [validation evidence](docs/VALIDATION.md) for the completed website acceptance tests and the precise remaining external handovers. The Random Forest model remains the separate team's responsibility.
+
+### Registration and sign-in feedback
+
+New accounts require a name, valid email and a **12–128 character password**. Sign-in uses the email/password of a registered account; arbitrary demo credentials are not accepted. Validation is displayed inside the page instead of relying on a browser popup that may prevent submission invisibly. Registration creates the account first, then attempts automatic sign-in; if that second step fails, the page confirms account creation and lets the user retry sign-in without registering again.
+
+The client confirms the authenticated session before opening the dashboard. If an embedded browser or cookie settings block the session cookie, it displays a specific message; open the forwarded website in a normal browser tab and allow that site's cookies. Requests time out rather than leaving the submit button busy indefinitely. Backend password creation policy, HttpOnly/SameSite cookie protection and exact trusted-origin checks remain enforced.
