@@ -351,3 +351,28 @@ test("offline sign-out and account switching keep pending submissions with their
   ).toHaveCount(1);
   await context.close();
 });
+
+test("blocked basemap displays a clear notice instead of 403 images while retaining GIS records", async ({
+  page,
+}) => {
+  await page.route("https://tile.openstreetmap.org/**", (route) =>
+    route.fulfill({
+      status: 403,
+      contentType: "text/plain",
+      headers: { "access-control-allow-origin": "*" },
+      body: "Access blocked",
+    }),
+  );
+  await login(page, "official");
+  await page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("link", { name: "GIS map", exact: true })
+    .click();
+  await expect(
+    page.getByRole("status").filter({
+      hasText: "OpenStreetMap refused the background map request (HTTP 403)",
+    }),
+  ).toBeVisible();
+  await expect(page.locator(".leaflet-interactive")).not.toHaveCount(0);
+  await expect(page.locator("img.leaflet-tile")).toHaveCount(0);
+});

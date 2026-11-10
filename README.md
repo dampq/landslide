@@ -108,3 +108,16 @@ The setup script uses **Python 3.12**, even if Codespaces defaults to Python 3.1
 On minimal Debian/Ubuntu interpreters, `ensurepip` may be absent. Setup uses `uv venv --seed`, which installs pip without the OS `python3.12-venv` package. If uv is missing, a standard-library bootstrap downloads its official PyPI wheel over HTTPS and checks its published SHA-256 before extracting the executable. Incomplete virtual environments without pip are repaired automatically on rerun. No sudo or system-package changes are needed.
 
 For a freshly created PostgreSQL volume, setup waits for an authenticated connection through the application's configured `DATABASE_URL` before migrating. The image's temporary initialization server may accept local socket connections before its mapped TCP port is ready; container startup alone is not sufficient. You can rerun the check directly with `cd backend && .venv/bin/python manage.py wait-db`. Do not delete the database volume to resolve a startup delay.
+
+### Background map blocked (403)
+
+A repeated “Access blocked” image is a response from the tile provider, not a landslide layer. OpenStreetMap's volunteer servers enforce their [tile usage policy](https://operations.osmfoundation.org/policies/tiles/), including attribution and valid browser referrers. Shared-network restrictions can also affect access. Open the forwarded website in a normal browser tab instead of an embedded editor preview. The app explicitly sends an appropriate referrer and checks one visible tile's HTTP status before rendering the basemap; a blocked layer is replaced by a clear notice while geographic markers remain visible. It does not proxy or change OpenStreetMap hostnames to evade a denial.
+
+For an alternative, CARTO provides an OpenStreetMap-derived basemap with a free tier, but its current terms require an API key. Obtain your own key from https://carto.com/basemaps/apikey/ and review its usage limits. Add the following to an ignored `.env.local` file in the repository root, then restart Vite (or rebuild for production):
+
+```dotenv
+VITE_MAP_PROVIDER=carto
+VITE_CARTO_API_KEY=YOUR_CARTO_BASEMAP_KEY
+```
+
+These `VITE_` settings are public browser configuration: use a browser-appropriate key and provider-supported restrictions, never a private backend credential. CARTO requests go to `a.basemaps.cartocdn.com`; allow this host where network policy requires it. Both OpenStreetMap and CARTO attribution are displayed. Default provider remains `osm`; no paid service or API key is required when OpenStreetMap access is permitted. Tiles are never bulk-cached or used to fabricate an offline basemap.

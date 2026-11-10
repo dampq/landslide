@@ -1,3 +1,4 @@
+import Basemap from "./components/Basemap";
 import {
   useEffect,
   useState,
@@ -9,7 +10,7 @@ import {
   ReactElement,
 } from "react";
 import { Link } from "react-router-dom";
-import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
+import { MapContainer, CircleMarker, Popup } from "react-leaflet";
 import {
   ResponsiveContainer,
   BarChart,
@@ -1067,6 +1068,7 @@ function Exposure({ locationId }: { locationId: string }) {
 }
 export function MapPage() {
   const { t } = useApp();
+  const [tileStatus, setTileStatus] = useState("");
   const [layers, setLayers] = useState([
     "locations",
     "roads",
@@ -1089,7 +1091,7 @@ export function MapPage() {
     <>
       <Heading
         title="GIS map"
-        sub="Layer switches filter stored PostGIS features. The map uses OpenStreetMap; base tiles need network access."
+        sub="Layer switches filter stored PostGIS features. Basemaps use OpenStreetMap data; tile access depends on the configured provider."
       />
       <div className="mb-4 flex flex-wrap gap-4">
         {[
@@ -1116,13 +1118,18 @@ export function MapPage() {
         ))}
       </div>
       <Load query={query} />
+      {tileStatus && (
+        <div
+          role="status"
+          className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+        >
+          {tileStatus}
+        </div>
+      )}
       <Card className="overflow-hidden">
         <div className="h-[540px] max-h-[70vh]">
           <MapContainer center={[25.9, 92.5]} zoom={6} scrollWheelZoom>
-            <TileLayer
-              attribution="&copy; OpenStreetMap contributors"
-              url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+            <Basemap onStatus={setTileStatus} />
             {query.data?.features.map((f: any) => {
               const p = f.properties;
               return (
