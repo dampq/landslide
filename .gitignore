@@ -5,3 +5,10 @@ dist/
 *.log
 .DS_Store
 .vscode/
+backend/.venv/
+__pycache__/
+.pytest_cache/
+*.tsbuildinfo
+playwright-report/
+test-results/
+backend/models/

@@ -1,2 +1,433 @@
-import {BrowserRouter,Routes,Route,Navigate} from "react-router-dom";import Layout from "./components/Layout";import Login from "./pages/Login";import Dashboard from "./pages/Dashboard";import MapPage from "./pages/MapPage";import Prediction from "./pages/Prediction";import Weather from "./pages/Weather";import Sensors from "./pages/Sensors";import Roads from "./pages/Roads";import Villages from "./pages/Villages";import Alerts from "./pages/Alerts";import Response from "./pages/Response";import Reports from "./pages/Reports";import Analytics from "./pages/Analytics";import Offline from "./pages/Offline";import Settings from "./pages/Settings";
-export default function App(){return <BrowserRouter><Routes><Route path="/login" element={<Login/>}/><Route element={<Layout/>}><Route index element={<Dashboard/>}/><Route path="/map" element={<MapPage/>}/><Route path="/prediction" element={<Prediction/>}/><Route path="/weather" element={<Weather/>}/><Route path="/sensors" element={<Sensors/>}/><Route path="/roads" element={<Roads/>}/><Route path="/villages" element={<Villages/>}/><Route path="/alerts" element={<Alerts/>}/><Route path="/response" element={<Response/>}/><Route path="/reports" element={<Reports/>}/><Route path="/analytics" element={<Analytics/>}/><Route path="/offline" element={<Offline/>}/><Route path="/settings" element={<Settings/>}/></Route><Route path="*" element={<Navigate to="/login"/>}/></Routes></BrowserRouter>}
+import { createContext, useContext, useEffect, useState } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  NavLink,
+  Outlet,
+  useNavigate,
+} from "react-router-dom";
+import { ShieldAlert, Menu, LogOut, CloudOff, Languages } from "lucide-react";
+import { api, Account, useOnline, syncQueue, flushPendingLogout } from "./lib";
+import { languages, translate } from "./i18n";
+import { Button, Input, Card } from "./components/ui";
+import {
+  Dashboard,
+  Reports,
+  Monitoring,
+  MapPage,
+  Weather,
+  Prediction,
+  Alerts,
+  ResponsePage,
+  History,
+  Analytics,
+  Offline,
+  Admin,
+  Settings,
+} from "./Portal";
+
+type Context = {
+  account: Account | null;
+  setAccount: (a: Account | null) => void;
+  lang: string;
+  setLang: (v: string) => void;
+  t: (key: string) => string;
+  online: boolean;
+};
+const AppContext = createContext<Context>(null!);
+export const useApp = () => useContext(AppContext);
+const routes = [
+  ["Dashboard", "/"],
+  ["GIS map", "/map"],
+  ["Reports", "/reports"],
+  ["Monitoring", "/monitoring"],
+  ["Weather", "/weather"],
+  ["Model integration", "/prediction"],
+  ["Alerts", "/alerts"],
+  ["Response", "/response"],
+  ["History & imagery", "/history"],
+  ["Analytics", "/analytics"],
+  ["Offline queue", "/offline"],
+  ["Administration", "/admin"],
+  ["Settings", "/settings"],
+];
+function Shell() {
+  const { account, setAccount, lang, setLang, t, online } = useApp();
+  const [mobile, setMobile] = useState(false);
+  const nav = useNavigate();
+  if (!account) return <Navigate to="/login" replace />;
+  const allowed = routes.filter(
+    ([_, path]) =>
+      !(
+        account.role === "citizen" &&
+        ["/response", "/analytics", "/prediction"].includes(path)
+      ) &&
+      (path !== "/admin" || account.role === "admin"),
+  );
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <header className="portal-header">
+        <button
+          aria-label="Menu"
+          className="md:hidden"
+          onClick={() => setMobile(!mobile)}
+        >
+          <Menu />
+        </button>
+        <ShieldAlert className="text-orange-300" />
+        <div>
+          <b className="tracking-wide">ASHTARAKSHA</b>
+          <div className="text-xs text-slate-300">
+            North East India · Landslide monitoring
+          </div>
+        </div>
+        <span className="ml-auto flex items-center gap-2 text-xs">
+          {!online && <CloudOff size={16} />}
+          <span>{t(online ? "Online" : "Offline")}</span>
+        </span>
+        <Languages size={18} />
+        <select
+          aria-label="Language"
+          className="rounded border border-slate-500 bg-slate-800 p-1 text-sm"
+          value={lang}
+          onChange={(e) => setLang(e.target.value)}
+        >
+          {Object.entries(languages).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
+        </select>
+        <button
+          aria-label={t("Sign out")}
+          title={t("Sign out")}
+          onClick={async () => {
+            if (online) {
+              try {
+                await api("/api/auth/logout", { method: "POST" });
+              } catch {
+                localStorage.setItem("ashtaraksha-logout-pending", "true");
+              }
+            } else localStorage.setItem("ashtaraksha-logout-pending", "true");
+            localStorage.removeItem("ashtaraksha-account");
+            setAccount(null);
+            nav("/login");
+          }}
+        >
+          <LogOut size={20} />
+        </button>
+      </header>
+      <div className="flex">
+        <aside
+          className={`${mobile ? "block" : "hidden"} portal-sidebar md:block`}
+        >
+          <div className="mb-4 rounded-xl bg-slate-100 p-3 text-sm">
+            <b>{account.name}</b>
+            <div className="text-xs text-slate-500">
+              {t(
+                account.role === "admin"
+                  ? "Administrator"
+                  : account.role === "official"
+                    ? "Field official"
+                    : "Citizen",
+              )}
+            </div>
+          </div>
+          <nav aria-label="Main navigation">
+            {allowed.map(([label, path]) => (
+              <NavLink
+                end={path === "/"}
+                key={path}
+                to={path}
+                onClick={() => setMobile(false)}
+                className={({ isActive }) =>
+                  `mb-1 block rounded-xl px-3 py-2.5 text-sm font-semibold ${isActive ? "bg-blue-100 text-blue-900" : "text-slate-600 hover:bg-slate-100"}`
+                }
+              >
+                {t(label)}
+              </NavLink>
+            ))}
+          </nav>
+        </aside>
+        <main className="min-w-0 flex-1 p-3 md:p-7">
+          <div
+            className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+            role="note"
+          >
+            {t("Sample data notice")}
+          </div>
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}
+function Auth() {
+  const { setAccount, t, lang, setLang } = useApp();
+  const [register, setRegister] = useState(false),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false);
+  const nav = useNavigate();
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    const data = Object.fromEntries(new FormData(e.currentTarget));
+    try {
+      await flushPendingLogout();
+      if (register)
+        await api("/api/auth/register", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      const a = await api<Account>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      setAccount(a);
+      nav("/");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="min-h-screen bg-[#0d2038] p-5 text-white">
+      <header className="mx-auto flex max-w-6xl items-center gap-3 py-4">
+        <ShieldAlert className="text-orange-300" />
+        <b>ASHTARAKSHA</b>
+        <select
+          aria-label="Language"
+          className="ml-auto rounded bg-slate-700 p-2"
+          value={lang}
+          onChange={(e) => setLang(e.target.value)}
+        >
+          {Object.entries(languages).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
+        </select>
+      </header>
+      <div className="mx-auto grid max-w-6xl items-center gap-10 py-12 lg:grid-cols-2">
+        <section>
+          <div className="mb-5 text-sm font-bold tracking-widest text-orange-300">
+            NORTH EAST INDIA
+          </div>
+          <h1 className="text-4xl font-black leading-tight md:text-6xl">
+            Observe. Report.
+            <br />
+            Prepare together.
+          </h1>
+          <p className="mt-6 max-w-lg text-lg text-slate-300">
+            A community platform for landslide monitoring, field verification
+            and coordinated response.
+          </p>
+          <div className="mt-8 rounded-xl border border-white/20 p-5 text-sm text-slate-200">
+            {t("Sample data notice")}
+          </div>
+          <p className="mt-6 text-sm text-slate-300">
+            {t("Remember to stay safe")}
+          </p>
+        </section>
+        <Card className="p-7 text-slate-900">
+          <h2 className="mb-5 text-2xl font-black">
+            {t(register ? "Create account" : "Sign in")}
+          </h2>
+          <form className="space-y-4" onSubmit={submit}>
+            {register && (
+              <label className="field">
+                {t("Name")}
+                <Input
+                  name="name"
+                  required
+                  maxLength={100}
+                  autoComplete="name"
+                />
+              </label>
+            )}
+            <label className="field">
+              {t("Email")}
+              <Input name="email" type="email" required autoComplete="email" />
+            </label>
+            <label className="field">
+              {t("Password")}
+              <Input
+                aria-label={t("Password")}
+                name="password"
+                type="password"
+                required
+                minLength={12}
+                maxLength={128}
+                autoComplete={register ? "new-password" : "current-password"}
+              />
+              <small>{t("Minimum 12 characters")}</small>
+            </label>
+            {error && (
+              <div className="error" role="alert">
+                {error}
+              </div>
+            )}
+            <Button type="submit" disabled={busy} className="w-full">
+              {busy ? t("Loading…") : t(register ? "Register" : "Sign in")}
+            </Button>
+          </form>
+          <Button
+            variant="ghost"
+            className="mt-4 w-full"
+            onClick={() => {
+              setRegister(!register);
+              setError("");
+            }}
+          >
+            {t(register ? "Back to sign in" : "Create account")}
+          </Button>
+          <p className="mt-4 text-xs text-slate-500">
+            Registration creates a citizen account. Official and administrator
+            roles are assigned by an administrator.
+          </p>
+        </Card>
+      </div>
+    </div>
+  );
+}
+function Restricted({
+  children,
+  admin = false,
+}: {
+  children: React.ReactNode;
+  admin?: boolean;
+}) {
+  const { account } = useApp();
+  return account &&
+    (admin ? account.role === "admin" : account.role !== "citizen") ? (
+    <>{children}</>
+  ) : (
+    <Navigate to="/" replace />
+  );
+}
+export default function App() {
+  const [account, setAccountState] = useState<Account | null>(null),
+    [ready, setReady] = useState(false),
+    [lang, setLangState] = useState(
+      localStorage.getItem("ashtaraksha-language") || "en",
+    );
+  const online = useOnline();
+  const setAccount = (a: Account | null) => {
+    setAccountState(a);
+    if (a) localStorage.setItem("ashtaraksha-account", JSON.stringify(a));
+    else localStorage.removeItem("ashtaraksha-account");
+  };
+  const setLang = (v: string) => {
+    setLangState(v);
+    localStorage.setItem("ashtaraksha-language", v);
+    document.documentElement.lang = v;
+  };
+  useEffect(() => {
+    (localStorage.getItem("ashtaraksha-logout-pending")
+      ? Promise.reject(new Error("Signed out locally"))
+      : api<Account>("/api/auth/me")
+    )
+      .then(setAccount)
+      .catch(() => {
+        if (
+          !navigator.onLine &&
+          !localStorage.getItem("ashtaraksha-logout-pending")
+        ) {
+          try {
+            setAccountState(
+              JSON.parse(localStorage.getItem("ashtaraksha-account") || "null"),
+            );
+          } catch {}
+        }
+      })
+      .finally(() => setReady(true));
+    const expired = () => setAccount(null);
+    window.addEventListener("session-expired", expired);
+    return () => window.removeEventListener("session-expired", expired);
+  }, []);
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+  useEffect(() => {
+    if (online && localStorage.getItem("ashtaraksha-logout-pending")) {
+      void flushPendingLogout().catch(() => {});
+      return;
+    }
+    if (online && account) {
+      void syncQueue(account.id).catch(() => {});
+    }
+  }, [online, account?.id]);
+  if (!ready) return <p className="p-10">Loading…</p>;
+  return (
+    <AppContext.Provider
+      value={{
+        account,
+        setAccount,
+        lang,
+        setLang,
+        t: (key) => translate(lang, key),
+        online,
+      }}
+    >
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path="/login"
+            element={account ? <Navigate to="/" /> : <Auth />}
+          />
+          <Route element={<Shell />}>
+            <Route index element={<Dashboard />} />
+            <Route path="map" element={<MapPage />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="monitoring" element={<Monitoring />} />
+            <Route path="weather" element={<Weather />} />
+            <Route
+              path="prediction"
+              element={
+                <Restricted>
+                  <Prediction />
+                </Restricted>
+              }
+            />
+            <Route path="alerts" element={<Alerts />} />
+            <Route
+              path="response"
+              element={
+                <Restricted>
+                  <ResponsePage />
+                </Restricted>
+              }
+            />
+            <Route path="history" element={<History />} />
+            <Route
+              path="analytics"
+              element={
+                <Restricted>
+                  <Analytics />
+                </Restricted>
+              }
+            />
+            <Route path="offline" element={<Offline />} />
+            <Route
+              path="admin"
+              element={
+                <Restricted admin>
+                  <Admin />
+                </Restricted>
+              }
+            />
+            <Route path="settings" element={<Settings />} />
+            <Route path="roads" element={<Navigate to="/monitoring" />} />
+            <Route path="villages" element={<Navigate to="/monitoring" />} />
+            <Route path="sensors" element={<Navigate to="/monitoring" />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </BrowserRouter>
+    </AppContext.Provider>
+  );
+}

@@ -1,8 +1,0 @@
-.env
-*.sqlite3*
-__pycache__
-.venv
-.deps
-.git
-test_*.py
-backups

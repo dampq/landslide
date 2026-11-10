@@ -1,9 +1,199 @@
-@tailwind base;@tailwind components;@tailwind utilities;
 @import "leaflet/dist/leaflet.css";
-:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172033;background:#f4f7fb}
-*{box-sizing:border-box} body{margin:0;min-width:320px;min-height:100vh} button,input,select,textarea{font:inherit}
-.leaflet-container{height:100%;width:100%;background:#dce8ee}.leaflet-control-attribution{font-size:9px}
-.risk-pulse{animation:pulseRisk 1.8s infinite}@keyframes pulseRisk{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.25)}50%{box-shadow:0 0 0 10px rgba(220,38,38,0)}}
-.demo-step{animation:rise .35s ease both}@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.high-contrast{filter:contrast(1.18)}.large-text{font-size:112%}
-::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color: #172033;
+  background: #f4f7fb;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #dce8ee;
+}
+.leaflet-control-attribution {
+  font-size: 9px;
+}
+.risk-pulse {
+  animation: pulseRisk 1.8s infinite;
+}
+@keyframes pulseRisk {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(220, 38, 38, 0);
+  }
+}
+.demo-step {
+  animation: rise 0.35s ease both;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.high-contrast {
+  filter: contrast(1.18);
+}
+.large-text {
+  font-size: 112%;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+.portal-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  background: #0d2038;
+  color: white;
+  padding: 12px 20px;
+}
+.portal-sidebar {
+  width: 235px;
+  flex-shrink: 0;
+  background: white;
+  border-right: 1px solid #e2e8f0;
+  padding: 18px;
+  position: sticky;
+  top: 72px;
+  height: calc(100vh - 72px);
+  overflow-y: auto;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.field small {
+  font-weight: 400;
+  color: #64748b;
+}
+.field textarea {
+  min-height: 110px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 10px;
+}
+.error {
+  padding: 12px;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #991b1b;
+  overflow-wrap: anywhere;
+}
+.success {
+  padding: 12px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: #065f46;
+}
+.record-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+.data-table {
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+}
+.data-table th,
+.data-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+.data-table th {
+  color: #475569;
+  background: #f8fafc;
+  font-size: 12px;
+}
+.data-table td {
+  max-width: 360px;
+  overflow-wrap: anywhere;
+}
+.sample {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #9a3412;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  font-family: inherit;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 3px;
+}
+@media (max-width: 767px) {
+  .portal-sidebar {
+    position: fixed;
+    z-index: 950;
+    left: 0;
+    top: 72px;
+    width: 250px;
+    box-shadow: 10px 0 30px #0002;
+  }
+  .portal-header {
+    gap: 8px;
+    padding: 12px;
+  }
+  .portal-header > svg:first-of-type {
+    display: none;
+  }
+  .portal-header b {
+    font-size: 13px;
+  }
+  .portal-header select {
+    max-width: 100px;
+  }
+}

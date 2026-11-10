@@ -1,0 +1,46 @@
+# Requirements and acceptance map
+
+This implementation targets a complete **student-level demonstration**. It deliberately distinguishes working features from separately supplied data/models and optional external services.
+
+| Requirement                                         | Implementation / acceptance                                                                                                                                       |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Registration, login, citizen/official/admin portals | Real password authentication, protected routes, backend role enforcement, administrator assignment and session revocation                                         |
+| Authority dashboard                                 | Database counts, source/sample notices, notifications; no invented regional totals or fake connection indicators                                                  |
+| GIS                                                 | Leaflet/OpenStreetMap, PostGIS features and real layer filtering, bbox API, population-radius queries                                                             |
+| Environmental monitoring                            | Editable/importable monitoring locations; slope and other source metadata; explicitly simulated rainfall sensors with history                                     |
+| Weather forecasts                                   | Open-Meteo fetch/cache, past modelled rainfall and hourly forecasts, freshness and provider-error handling; separately labelled sample forecast for demonstration |
+| Historical landslides                               | Attributed manual records and JSON/point GeoJSON imports; stored-data analytics. No false claim that a GSI inventory is already bundled                           |
+| Satellite exploration                               | External Copernicus Sentinel browser and public imagery-reference records; optional availability, no fabricated analysis                                          |
+| Citizen media/GPS reporting                         | Browser geolocation, validated reports, PNG/JPEG/WebP/MP4 uploads, private media download, stable IDs and deduplication                                           |
+| Field official reporting/verification               | Officials also submit reports; author role is server-derived. Verification/rejection/resolution require notes and valid transitions                               |
+| Image processing / optional classification          | OpenCV dimensions, brightness, sharpness and edge fraction. Classification is explicitly unconfigured and optional                                                |
+| Warning management                                  | Draft, approval, publication, resolution, subscription-filtered in-app inbox and idempotent publication                                                           |
+| Roads                                               | Stored, editable status and representative-point mapping; road-routing analysis is outside this student scope                                                     |
+| Infrastructure / vulnerable areas                   | Geographic records, shelter examples, reviewed location risk levels and spatial proximity                                                                         |
+| Population exposure                                 | Imported population counts with source/year/resolution/license, PostGIS radius sum and approximation notice; sample values clearly marked                         |
+| Response prioritisation                             | Labelled planning heuristic, approximate population/road impact, atomic team assignments and deployment transitions                                               |
+| Simulated sensors                                   | Explicit official-triggered rainfall simulator, current values/history; no physical network dependency                                                            |
+| Multilingual                                        | English/Hindi/Assamese core interface, reporting/action labels and persistent language selection; original reports/source text are retained                       |
+| Offline PWA                                         | Versioned app-shell cache, IndexedDB report+file queue, offline reload, author-scoped reconnect sync and retry deduplication                                      |
+| Analytics / downloads                               | Recharts summaries of stored data, CSV exports with provenance and formula neutralisation                                                                         |
+| Administration                                      | User roles/activation, imports, audit trail and database/model status                                                                                             |
+| Random Forest boundary                              | Inference-only API, explicit units/order, local trusted skops artifact, checksum/type checks, HTTP 503 before supplied; no training or pretrained replacement     |
+| Responsive web                                      | Desktop/sidebar and mobile menu layouts, browser-tested at 390px; no Android/iOS app required                                                                     |
+
+## Demonstration walkthrough
+
+1. Start the database/API/frontend and seed synthetic records.
+2. Register a citizen. Bootstrap a separate administrator locally and assign a field official.
+3. Submit a GPS report with an image. Verify it from the official portal and check the citizen sees its status.
+4. Explore the GIS layers and select a location to estimate nearby population. All seeded counts must show their synthetic source.
+5. Show the synthetic forecast; try live refresh. A blocked provider must produce an error while preserving cache.
+6. Run the sensor simulator. Explain that it produces no real sensor observations or model predictions.
+7. Create/approve/publish a synthetic warning. Check a citizen's subscribed inbox. Assign a sample team and complete its deployment.
+8. Disconnect the browser after loading the production PWA. Submit a report with an image, reload, inspect the queue, reconnect and verify one stored report with its media.
+9. Switch Hindi and Assamese; inspect mobile navigation and reporting controls.
+10. Download CSV, inspect source/simulated columns, import the sample JSON and inspect the audit trail.
+11. Open the model portal. Until the external model arrives, verify the explicit unavailable state. Do not present any sample risk level as an ML result.
+
+## Separate handovers / honest limitations
+
+The separately developed Random Forest artifact and its independent evaluation are not supplied, so actual model inference remains to be validated on delivery. Real public datasets are not fabricated or represented as already downloaded: lawful imports, attribution and domain review are required when replacing samples. Live weather/maps require network access. External satellite exploration and advanced classification remain optional. This student platform does not claim operational government warning capability, calibrated predictions or a proven population-at-risk footprint.

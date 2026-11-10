@@ -1,1 +1,31 @@
-import {defineConfig} from "vite";import react from "@vitejs/plugin-react";export default defineConfig({plugins:[react()]});
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      "/api": "http://127.0.0.1:8000",
+      "/health": "http://127.0.0.1:8000",
+    },
+  },
+  preview: {
+    proxy: {
+      "/api": "http://127.0.0.1:8000",
+      "/health": "http://127.0.0.1:8000",
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (
+            id.includes("node_modules/leaflet/") ||
+            id.includes("node_modules/react-leaflet/")
+          )
+            return "maps";
+          if (id.includes("node_modules/recharts/")) return "charts";
+        },
+      },
+    },
+  },
+});
