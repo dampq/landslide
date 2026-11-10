@@ -636,3 +636,79 @@ def test_weather_success_is_attributed_and_replaces_sample(actors, monkeypatch):
     assert result.json()["rainfall24h"] == 24 and result.json()["rainfall72h"] == 72
     assert result.json()["forecast24h"] == 24 and result.json()["simulated"] is False
     assert "Open-Meteo" in result.json()["source"]
+
+
+def test_explicit_sample_weather_requires_official_and_is_consistent(actors):
+    c = actors["official"]
+    assert (
+        actors["citizen"]
+        .post("/api/weather/demo-location-0/sample", json={})
+        .status_code
+        == 403
+    )
+    result = c.post("/api/weather/demo-location-0/sample", json={})
+    assert result.status_code == 200, result.text
+    data = result.json()
+    assert data["simulated"] is True and "not Open-Meteo" in data["source"]
+    rain = [h["rainfall"] for h in data["hourly"]]
+    assert data["rainfall24h"] == round(sum(rain[48:72]), 1)
+    assert data["rainfall72h"] == round(sum(rain[:72]), 1)
+    assert data["forecast24h"] == round(sum(rain[72:96]), 1)
+    assert c.get("/api/weather/demo-location-0").json()["simulated"] is True
+
+
+def test_sample_weather_never_silently_overwrites_a_live_cache(actors):
+    with Session.begin() as db:
+        row = db.get(Record, "weather-demo-location-0")
+        row.data = {**row.data, "simulated": False, "source": "Test live cache marker"}
+    c = actors["official"]
+    assert c.post("/api/weather/demo-location-0/sample", json={}).status_code == 409
+    assert (
+        c.get("/api/weather/demo-location-0").json()["source"]
+        == "Test live cache marker"
+    )
+    assert (
+        c.post(
+            "/api/weather/demo-location-0/sample", json={"replaceLive": True}
+        ).json()["simulated"]
+        is True
+    )
+
+
+def test_malformed_live_weather_cannot_corrupt_existing_cache(actors, monkeypatch):
+    import api.main as main
+
+    class ProviderResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "hourly": {
+                    "time": ["2026-11-10T00:00"],
+                    "precipitation": [1],
+                    "temperature_2m": [],
+                    "relative_humidity_2m": [80],
+                }
+            }
+
+    class ProviderClient:
+        def __init__(self, *a, **kw):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            pass
+
+        def get(self, *a, **kw):
+            return ProviderResponse()
+
+    before = actors["official"].get("/api/weather/demo-location-0").json()
+    monkeypatch.setattr(main.httpx, "Client", ProviderClient)
+    assert (
+        actors["official"].post("/api/weather/demo-location-0/refresh").status_code
+        == 502
+    )
+    assert actors["official"].get("/api/weather/demo-location-0").json() == before

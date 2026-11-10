@@ -144,6 +144,7 @@ def main():
     subs = parser.add_subparsers(dest="command", required=True)
     subs.add_parser("migrate")
     subs.add_parser("wait-db")
+    subs.add_parser("check-services")
     subs.add_parser("seed-demo")
     create = subs.add_parser("create-user")
     create.add_argument("email")
@@ -155,6 +156,15 @@ def main():
     promote.add_argument("email")
     promote.add_argument("role", choices=["citizen", "official", "admin"])
     args = parser.parse_args()
+    if args.command == "check-services":
+        import json
+        from api.diagnostics import check_services
+
+        result = check_services()
+        print(json.dumps(result, indent=2))
+        raise SystemExit(
+            0 if result["database"]["ok"] and result["weather"]["ok"] else 1
+        )
     if args.command == "wait-db":
         try:
             wait_for_database()

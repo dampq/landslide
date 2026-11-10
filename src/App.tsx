@@ -1,3 +1,4 @@
+import RequestError from "./components/RequestError";
 import { createContext, useContext, useEffect, useState } from "react";
 import {
   BrowserRouter,
@@ -10,7 +11,7 @@ import {
 } from "react-router-dom";
 import { ShieldAlert, Menu, LogOut, CloudOff, Languages } from "lucide-react";
 import { api, Account, useOnline, syncQueue, flushPendingLogout } from "./lib";
-import { languages, translate } from "./i18n";
+import { languages, translate, type TranslationParams } from "./i18n";
 import { Button, Input, Card } from "./components/ui";
 import {
   Dashboard,
@@ -33,7 +34,7 @@ type Context = {
   setAccount: (a: Account | null) => void;
   lang: string;
   setLang: (v: string) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: TranslationParams) => string;
   online: boolean;
 };
 const AppContext = createContext<Context>(null!);
@@ -70,7 +71,7 @@ function Shell() {
     <div className="min-h-screen bg-slate-50">
       <header className="portal-header">
         <button
-          aria-label="Menu"
+          aria-label={t("Menu")}
           className="md:hidden"
           onClick={() => setMobile(!mobile)}
         >
@@ -78,9 +79,9 @@ function Shell() {
         </button>
         <ShieldAlert className="text-orange-300" />
         <div>
-          <b className="tracking-wide">ASHTARAKSHA</b>
+          <b className="tracking-wide">{t("ASHTARAKSHA")}</b>
           <div className="text-xs text-slate-300">
-            North East India · Landslide monitoring
+            {t("North East India · Landslide monitoring")}{" "}
           </div>
         </div>
         <span className="ml-auto flex items-center gap-2 text-xs">
@@ -89,7 +90,7 @@ function Shell() {
         </span>
         <Languages size={18} />
         <select
-          aria-label="Language"
+          aria-label={t("Language")}
           className="rounded border border-slate-500 bg-slate-800 p-1 text-sm"
           value={lang}
           onChange={(e) => setLang(e.target.value)}
@@ -135,7 +136,7 @@ function Shell() {
               )}
             </div>
           </div>
-          <nav aria-label="Main navigation">
+          <nav aria-label={t("Main navigation")}>
             {allowed.map(([label, path]) => (
               <NavLink
                 end={path === "/"}
@@ -198,9 +199,9 @@ function Auth() {
     <div className="min-h-screen bg-[#0d2038] p-5 text-white">
       <header className="mx-auto flex max-w-6xl items-center gap-3 py-4">
         <ShieldAlert className="text-orange-300" />
-        <b>ASHTARAKSHA</b>
+        <b>{t("ASHTARAKSHA")}</b>
         <select
-          aria-label="Language"
+          aria-label={t("Language")}
           className="ml-auto rounded bg-slate-700 p-2"
           value={lang}
           onChange={(e) => setLang(e.target.value)}
@@ -215,16 +216,16 @@ function Auth() {
       <div className="mx-auto grid max-w-6xl items-center gap-10 py-12 lg:grid-cols-2">
         <section>
           <div className="mb-5 text-sm font-bold tracking-widest text-orange-300">
-            NORTH EAST INDIA
+            {t("NORTH EAST INDIA")}{" "}
           </div>
           <h1 className="text-4xl font-black leading-tight md:text-6xl">
-            Observe. Report.
-            <br />
-            Prepare together.
+            {t("Observe. Report.")} <br />
+            {t("Prepare together.")}{" "}
           </h1>
           <p className="mt-6 max-w-lg text-lg text-slate-300">
-            A community platform for landslide monitoring, field verification
-            and coordinated response.
+            {t(
+              "A community platform for landslide monitoring, field verification and coordinated response.",
+            )}{" "}
           </p>
           <div className="mt-8 rounded-xl border border-white/20 p-5 text-sm text-slate-200">
             {t("Sample data notice")}
@@ -268,7 +269,7 @@ function Auth() {
             </label>
             {error && (
               <div className="error" role="alert">
-                {error}
+                <RequestError message={error} />
               </div>
             )}
             <Button type="submit" disabled={busy} className="w-full">
@@ -286,8 +287,9 @@ function Auth() {
             {t(register ? "Back to sign in" : "Create account")}
           </Button>
           <p className="mt-4 text-xs text-slate-500">
-            Registration creates a citizen account. Official and administrator
-            roles are assigned by an administrator.
+            {t(
+              "Registration creates a citizen account. Official and administrator roles are assigned by an administrator.",
+            )}{" "}
           </p>
         </Card>
       </div>
@@ -318,6 +320,13 @@ export default function App() {
   const online = useOnline();
   const setAccount = (a: Account | null) => {
     setAccountState(a);
+    if (
+      a?.preferences.language &&
+      !localStorage.getItem("ashtaraksha-language")
+    ) {
+      setLangState(a.preferences.language);
+      localStorage.setItem("ashtaraksha-language", a.preferences.language);
+    }
     if (a) localStorage.setItem("ashtaraksha-account", JSON.stringify(a));
     else localStorage.removeItem("ashtaraksha-account");
   };
@@ -361,7 +370,7 @@ export default function App() {
       void syncQueue(account.id).catch(() => {});
     }
   }, [online, account?.id]);
-  if (!ready) return <p className="p-10">Loading…</p>;
+  if (!ready) return <p className="p-10">{translate(lang, "Loading…")}</p>;
   return (
     <AppContext.Provider
       value={{
@@ -369,7 +378,7 @@ export default function App() {
         setAccount,
         lang,
         setLang,
-        t: (key) => translate(lang, key),
+        t: (key, params) => translate(lang, key, params),
         online,
       }}
     >

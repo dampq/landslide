@@ -62,11 +62,11 @@ npm run preview -- --host 127.0.0.1 --port 4173
 
 Keep the API running on 8000. The production build generates a versioned service worker and manifest. Open the website online once and allow the worker to activate before testing offline reload. HTTPS is required outside localhost.
 
-The worker caches **only the application shell and bundled assets**. It never caches private API responses or bulk-downloads OpenStreetMap tiles. Report text and actual attachment files are written to IndexedDB before submission, scoped to the current account, and survive reloads. Reconnection attempts sync only after confirming the same account with the server. Stable client IDs and media hashes make network retries idempotent. Errors remain visible in the queue; successfully uploaded files are removed individually before the final queue entry is deleted. Other accounts cannot accidentally sync someone else's pending reports.
+The worker caches **the application shell, bundled assets and the public-domain regional reference map**. It never caches private API responses or bulk-downloads OpenStreetMap tiles. Report text and actual attachment files are written to IndexedDB before submission, scoped to the current account, and survive reloads. Reconnection attempts sync only after confirming the same account with the server. Stable client IDs and media hashes make network retries idempotent. Errors remain visible in the queue; successfully uploaded files are removed individually before the final queue entry is deleted. Other accounts cannot accidentally sync someone else's pending reports.
 
 Existing submitted data, fresh alerts and external map tiles require connectivity. Offline login is limited to resuming the last locally remembered account view; server authorization is always enforced when online. Local pending files are not encrypted: use trusted devices and delete pending entries before sharing a device. Browser storage may be evicted; sync promptly.
 
-Core navigation, reporting and action labels support English, Hindi and Assamese. User-generated text, source attribution, scientific feature names, detailed diagnostics and some secondary descriptions remain in their original language. Obtain native-speaker review before a public rollout.
+The interface has complete English, Hindi and Assamese catalogs for page descriptions, form labels, navigation, status messages and actions. Source citations, user-entered reports, arbitrary imported metadata and technical identifiers retain their original content. Unknown server diagnostics are available under a translated technical-details disclosure. Native-speaker review is recommended before a public rollout. Run `npm run check:i18n` to catch untranslated JSX text, missing keys and mismatched placeholders.
 
 ## Tests
 
@@ -111,7 +111,7 @@ For a freshly created PostgreSQL volume, setup waits for an authenticated connec
 
 ### Background map blocked (403)
 
-A repeated “Access blocked” image is a response from the tile provider, not a landslide layer. OpenStreetMap's volunteer servers enforce their [tile usage policy](https://operations.osmfoundation.org/policies/tiles/), including attribution and valid browser referrers. Shared-network restrictions can also affect access. Open the forwarded website in a normal browser tab instead of an embedded editor preview. The app explicitly sends an appropriate referrer and checks one visible tile's HTTP status before rendering the basemap; a blocked layer is replaced by a clear notice while geographic markers remain visible. It does not proxy or change OpenStreetMap hostnames to evade a denial.
+A repeated “Access blocked” image is a response from the tile provider, not a landslide layer. OpenStreetMap's volunteer servers enforce their [tile usage policy](https://operations.osmfoundation.org/policies/tiles/), including attribution and valid browser referrers. Shared-network restrictions can also affect access. Open the forwarded website in a normal browser tab instead of an embedded editor preview. The app explicitly sends an appropriate referrer and checks one visible tile's HTTP status before rendering the basemap; a blocked layer falls back to a bundled regional reference map while geographic markers remain visible. It does not proxy or change OpenStreetMap hostnames to evade a denial.
 
 For an alternative, CARTO provides an OpenStreetMap-derived basemap with a free tier, but its current terms require an API key. Obtain your own key from https://carto.com/basemaps/apikey/ and review its usage limits. Add the following to an ignored `.env.local` file in the repository root, then restart Vite (or rebuild for production):
 
@@ -120,4 +120,21 @@ VITE_MAP_PROVIDER=carto
 VITE_CARTO_API_KEY=YOUR_CARTO_BASEMAP_KEY
 ```
 
-These `VITE_` settings are public browser configuration: use a browser-appropriate key and provider-supported restrictions, never a private backend credential. CARTO requests go to `a.basemaps.cartocdn.com`; allow this host where network policy requires it. Both OpenStreetMap and CARTO attribution are displayed. Default provider remains `osm`; no paid service or API key is required when OpenStreetMap access is permitted. Tiles are never bulk-cached or used to fabricate an offline basemap.
+These `VITE_` settings are public browser configuration: use a browser-appropriate key and provider-supported restrictions, never a private backend credential. CARTO requests go to `a.basemaps.cartocdn.com`; allow this host where network policy requires it. Both OpenStreetMap and CARTO attribution are displayed. Default mode is `auto`: try OpenStreetMap and retain the bundled reference if online access fails. The map selector also offers `reference` for offline use, `osm`, and configured `carto`. No paid service or API key is required for the reference map. Tiles are never bulk-cached; the offline reference is a separately licensed vector dataset, not copied street tiles.
+
+## Website acceptance and external services
+
+The map always has a public-domain geographic reference for the eight North Eastern states, with nearby country context, even when a tile server refuses requests. Select **Regional reference (offline)** to avoid external tile requests. This layer is cartographic context, not a street/terrain map or authoritative border survey. Natural Earth attribution and provenance are bundled in `public/reference-map-source.json`; `python3 scripts/prepare-reference-map.py` can reproduce it from checksum-pinned upstream files.
+
+The weather page distinguishes **Sample weather — simulated** from **Open-Meteo weather — modelled**, shows timestamps/staleness, and offers officials an explicit **Load sample weather** action. It will not overwrite a cached live forecast with samples without confirmation. A live-provider failure retains the existing cache; it never silently generates data. Samples satisfy the permitted demonstration path and must not be used as current conditions or warnings.
+
+To check actual service access on the machine where you run the website:
+
+```bash
+cd backend
+.venv/bin/python manage.py check-services
+```
+
+The read-only command checks PostgreSQL/PostGIS and an actual Open-Meteo response, without printing credentials or changing records. It exits nonzero when the live provider cannot be verified; this does not disable labelled demonstrations. Tile authorization must be checked in the real browser, not inferred from a server-side probe.
+
+See [validation evidence](docs/VALIDATION.md) for the completed website acceptance tests and the precise remaining external handovers. The Random Forest model remains the separate team's responsibility.

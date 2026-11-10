@@ -215,12 +215,12 @@ test("mobile layout, Hindi and Assamese navigation, model unavailable state", as
   await expect(
     page.getByRole("heading", { name: "डैशबोर्ड", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.getByRole("button", { name: "मेनू", exact: true }).click();
   await page.getByRole("link", { name: "मॉडल एकीकरण", exact: true }).click();
   await expect(
     page.getByText("मॉडल उपलब्ध नहीं है", { exact: true }),
   ).toBeVisible();
-  await page.getByLabel("Language", { exact: true }).selectOption("as");
+  await page.getByLabel("भाषा", { exact: true }).selectOption("as");
   await expect(
     page.getByRole("heading", { name: "মডেল সংযোগ", exact: true }),
   ).toBeVisible();
@@ -375,4 +375,344 @@ test("blocked basemap displays a clear notice instead of 403 images while retain
   ).toBeVisible();
   await expect(page.locator(".leaflet-interactive")).not.toHaveCount(0);
   await expect(page.locator("img.leaflet-tile")).toHaveCount(0);
+  await expect(page.locator("path.reference-state")).toHaveCount(8);
+  await page.screenshot({
+    path: "test-results/reference-map-desktop.png",
+    fullPage: true,
+  });
+});
+
+test("a real regional reference map is available offline, independently of third-party tiles", async ({
+  browser,
+}) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await login(page, "official");
+  await page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("link", { name: "GIS map", exact: true })
+    .click();
+  await page
+    .getByLabel("Background map", { exact: true })
+    .selectOption("reference");
+  await expect(page.locator("path.reference-state")).toHaveCount(8);
+  await expect(page.getByText("Assam", { exact: true })).toBeVisible();
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
+  await page.reload();
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.locator("path.reference-state")).toHaveCount(8);
+  await expect(page.getByText("Meghalaya", { exact: true })).toBeVisible();
+  await expect(page.locator(".leaflet-control-attribution")).toContainText(
+    "Natural Earth",
+  );
+  await page.screenshot({
+    path: "test-results/offline-reference-map.png",
+    fullPage: true,
+  });
+  await context.close();
+});
+
+test("weather failures keep labelled samples, and officials can explicitly refresh the demonstration", async ({
+  page,
+}) => {
+  await login(page, "official");
+  await page.getByRole("link", { name: "Weather", exact: true }).click();
+  await page
+    .getByLabel("Location", { exact: true })
+    .selectOption("demo-location-0");
+  await expect(
+    page.getByText("Sample weather — simulated", { exact: true }),
+  ).toBeVisible();
+  await page.route("**/api/weather/*/refresh", (route) =>
+    route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({
+        detail:
+          "Weather provider unavailable; cached values, if any, are retained. Check network access to api.open-meteo.com.",
+      }),
+    }),
+  );
+  await page
+    .getByRole("button", { name: "Refresh forecast", exact: true })
+    .click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Weather provider unavailable" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Sample weather — simulated", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Load sample weather", exact: true })
+    .click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Saved" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "These invented values demonstrate the website. They are not current conditions and must not be used for warnings.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+});
+
+test("officials assign and complete a response deployment through the portal", async ({
+  page,
+}) => {
+  await login(page, "official");
+  await page.getByRole("link", { name: "Response", exact: true }).click();
+  await page
+    .getByLabel("Location", { exact: true })
+    .selectOption("demo-location-0");
+  await page.getByLabel("Team", { exact: true }).selectOption("demo-team-0");
+  await page.getByRole("button", { name: "Deploy", exact: true }).click();
+  const deployment = page
+    .locator(".rounded-2xl")
+    .filter({
+      has: page.getByText("Mawsynram demonstration response team → Mawsynram", {
+        exact: true,
+      }),
+    })
+    .last();
+  await expect(deployment.getByText("En Route", { exact: true })).toBeVisible();
+  await deployment
+    .getByRole("button", { name: "On Site", exact: true })
+    .click();
+  await expect(deployment.getByText("On Site", { exact: true })).toBeVisible();
+  await deployment
+    .getByRole("button", { name: "Completed", exact: true })
+    .click();
+  await expect(
+    deployment.getByText("Completed", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByLabel("Team", { exact: true })
+      .locator('option[value="demo-team-0"]'),
+  ).toHaveCount(1);
+});
+
+test("administrator imports attributed records, downloads CSV, and assigns a portal role", async ({
+  browser,
+}) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await login(page, "admin");
+  const email = "browser-role-check@e2e.test";
+  expect(
+    (
+      await page.request.post("/api/auth/register", {
+        data: {
+          email,
+          name: "Browser role check",
+          password: "e2e-test-password-only",
+        },
+      })
+    ).status(),
+  ).toBe(201);
+  await page.getByRole("link", { name: "Administration", exact: true }).click();
+  await page
+    .getByLabel("Role for " + email, { exact: true })
+    .selectOption("official");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Saved" }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Import collection", { exact: true })
+    .selectOption("history");
+  await page.getByLabel("JSON / GeoJSON", { exact: true }).fill(
+    JSON.stringify({
+      items: [
+        {
+          name: "Browser imported demonstration event",
+          lat: 25.297,
+          lng: 91.582,
+          observedAt: 1750000000,
+          source: "Browser test synthetic dataset",
+          simulated: true,
+        },
+      ],
+    }),
+  );
+  await page.getByRole("button", { name: "Import data", exact: true }).click();
+  await expect(
+    page.getByText("1 imported; 0 unchanged", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("link", { name: "History & imagery", exact: true })
+    .click();
+  await expect(
+    page.getByText("Browser imported demonstration event", { exact: true }),
+  ).toBeVisible();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Download CSV", exact: true }).click();
+  const download = await downloadPromise;
+  const fs = await import("node:fs/promises");
+  const csv = await fs.readFile((await download.path())!, "utf8");
+  expect(csv).toContain("Browser imported demonstration event");
+  expect(csv).toContain("simulated");
+  expect(csv).toContain("Browser test synthetic dataset");
+  const official = await browser.newContext();
+  const newPage = await official.newPage();
+  await newPage.goto("/login");
+  await newPage.getByLabel("Email", { exact: true }).fill(email);
+  await newPage
+    .getByLabel("Password", { exact: true })
+    .fill("e2e-test-password-only");
+  await newPage.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(
+    newPage.getByRole("link", { name: "Response", exact: true }),
+  ).toBeVisible();
+  await expect(
+    newPage.getByRole("link", { name: "Administration", exact: true }),
+  ).toHaveCount(0);
+  await official.close();
+  await context.close();
+});
+
+test("Hindi and Assamese cover all portal pages and keep report field values independent of translations", async ({
+  page,
+}) => {
+  await login(page, "admin");
+  const headings: Record<string, string[]> = {
+    hi: [
+      "डैशबोर्ड",
+      "जीआईएस मानचित्र",
+      "घटना रिपोर्ट",
+      "पर्यावरण निगरानी",
+      "मौसम",
+      "मॉडल एकीकरण",
+      "चेतावनियाँ",
+      "आपात प्रतिक्रिया",
+      "इतिहास और उपग्रह चित्र",
+      "विश्लेषण",
+      "ऑफ़लाइन कतार",
+      "प्रशासन",
+      "सेटिंग्स",
+    ],
+    as: [
+      "ডেশ্বব’ৰ্ড",
+      "জিআইএছ মানচিত্ৰ",
+      "ঘটনাৰ প্ৰতিবেদন",
+      "পৰিৱেশ নিৰীক্ষণ",
+      "বতৰ",
+      "মডেল সংযোগ",
+      "সতৰ্কবাণী",
+      "জৰুৰী সঁহাৰি",
+      "ইতিহাস আৰু উপগ্ৰহ চিত্ৰ",
+      "বিশ্লেষণ",
+      "অফলাইন শাৰী",
+      "প্ৰশাসন",
+      "ছেটিংছ",
+    ],
+  };
+  for (const lang of ["hi", "as"]) {
+    await page.locator("header select").selectOption(lang);
+    for (const title of headings[lang]) {
+      await page
+        .locator("aside nav")
+        .getByRole("link", { name: title, exact: true })
+        .click();
+      await expect(
+        page.getByRole("heading", { level: 1, name: title, exact: true }),
+      ).toBeVisible();
+    }
+  }
+  await page.locator("header select").selectOption("hi");
+  await page
+    .locator("aside nav")
+    .getByRole("link", { name: "घटना रिपोर्ट", exact: true })
+    .click();
+  await page
+    .getByLabel("घटना का प्रकार", { exact: true })
+    .selectOption("Road Blockage");
+  await expect(page.getByLabel("घटना का प्रकार", { exact: true })).toHaveValue(
+    "Road Blockage",
+  );
+  await expect(
+    page
+      .getByLabel("घटना का प्रकार", { exact: true })
+      .locator("option:checked"),
+  ).toHaveText("सड़क अवरोध");
+  await page.screenshot({
+    path: "test-results/hindi-report.png",
+    fullPage: true,
+  });
+});
+
+test("permitted online tiles render with attribution and can switch back to the bundled reference", async ({
+  page,
+}) => {
+  await page.route("https://tile.openstreetmap.org/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      headers: { "access-control-allow-origin": "*" },
+      path: "tests/fixtures/field-sample.png",
+    }),
+  );
+  await login(page, "official");
+  await page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("link", { name: "GIS map", exact: true })
+    .click();
+  await expect(page.locator("img.leaflet-tile-loaded")).not.toHaveCount(0);
+  await expect(page.locator(".leaflet-control-attribution")).toContainText(
+    "OpenStreetMap",
+  );
+  await expect(page.locator("path.reference-state")).toHaveCount(0);
+  await page
+    .getByLabel("Background map", { exact: true })
+    .selectOption("reference");
+  await expect(page.locator("path.reference-state")).toHaveCount(8);
+  await expect(page.getByText("Assam", { exact: true })).toBeVisible();
+  await expect(page.locator(".leaflet-control-attribution")).toContainText(
+    "Natural Earth",
+  );
+});
+
+test("cancelling sample replacement preserves the live view and never reports a save", async ({
+  page,
+}) => {
+  await login(page, "official");
+  const cache = await (
+    await page.request.get("/api/weather/demo-location-0")
+  ).json();
+  await page.route("**/api/weather/demo-location-0", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...cache,
+        simulated: false,
+        source: "Test live-provider fixture",
+      }),
+    }),
+  );
+  let sampleRequests = 0;
+  page.on("request", (request) => {
+    if (request.url().endsWith("/sample") && request.method() === "POST")
+      sampleRequests++;
+  });
+  await page.getByRole("link", { name: "Weather", exact: true }).click();
+  await page
+    .getByLabel("Location", { exact: true })
+    .selectOption("demo-location-0");
+  await expect(
+    page.getByText("Open-Meteo weather — modelled", { exact: true }),
+  ).toBeVisible();
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page
+    .getByRole("button", { name: "Load sample weather", exact: true })
+    .click();
+  await expect(
+    page.getByText("Open-Meteo weather — modelled", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Saved" }),
+  ).toHaveCount(0);
+  expect(sampleRequests).toBe(0);
 });

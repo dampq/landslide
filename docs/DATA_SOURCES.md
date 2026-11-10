@@ -7,7 +7,7 @@
 The History & imagery portal lists GSI Bhukosh, NRSC Bhuvan, NASA GPM IMERG, NASA SRTM, NASA SMAP, OpenStreetMap, WorldPop and Copernicus. They are **source references, not claims that all feeds are integrated**. Downloads, registration, licenses, formats and public availability vary. Restricted government resources are not required.
 
 - Open-Meteo forecast ingestion is implemented. Rainfall for past hours is provider-modelled data, not gauge observations. Forecast/cache timestamps, staleness and attribution are shown. If the provider cannot be reached, existing cache remains and a clear error is returned.
-- Leaflet uses OpenStreetMap base tiles with attribution. The app does not bulk cache those tiles.
+- Leaflet supports attributed OpenStreetMap tiles and optionally configured CARTO tiles. If access fails, the map retains a bundled Natural Earth reference layer. Public tiles are not bulk-cached. The public-domain reference is independently bundled and cached with the PWA, not derived by downloading tiles.
 - Historical inventories, elevation/slope, soil moisture and road/infrastructure records can be entered manually or imported after lawful public download and preparation. This app does not derive slope from DEM rasters or convert soil-moisture conventions automatically.
 - WorldPop-style population cell centres and counts can be imported as population records. Supply dataset year, cell resolution, source and license. Exposure sums counts whose centres fall inside a PostGIS geodesic radius; boundary cells are not area-weighted. It is an approximate planning estimate, not a count of people in a predicted landslide footprint. Do not import overlapping village totals and grid cells into the same analysis dataset, as that would double-count residents.
 - Copernicus Browser supports external Sentinel-1/2 imagery exploration. Store public imagery references and acquisition descriptions as records. Satellite processing, subscriptions and image classification are optional, not fabricated.
@@ -40,3 +40,9 @@ Every record requires `source` (nonempty text) and `simulated` (boolean). Exact 
 ```
 
 To import real data, replace all example values and provenance, verify the source's license, and set `simulated` to false only for actual sourced observations. Use the API schema at `/docs` for endpoint definitions. Do not publish user reports as authoritative historical events without review.
+
+## Bundled Natural Earth reference
+
+`public/reference-map.geojson` contains 8 North Eastern state features and 8 surrounding country-context features from Natural Earth. Source URLs, retrieval date and input SHA-256 hashes are recorded in `public/reference-map-source.json`. Upstream data is public domain; displayed attribution identifies Natural Earth. Coordinates are rounded to four decimal places for distribution. The map is an approximate geographic reference, not a road network, live feed, authoritative boundary claim or surveyed disaster footprint. It supplies context when online tile providers are blocked or the browser is offline.
+
+Rebuild with `python3 scripts/prepare-reference-map.py`. The script verifies recorded upstream hashes and refuses changed inputs until their provenance has been reviewed. The large raw source files remain in ignored `.cache/geography/`.

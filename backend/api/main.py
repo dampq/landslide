@@ -44,6 +44,7 @@ from .security import (
     audit,
 )
 from .prediction import FEATURES, predict, load_model
+from .weather_data import sample_weather
 
 ORIGINS = os.environ.get(
     "APP_ORIGINS",
@@ -818,6 +819,31 @@ def weather(id: str, account=Depends(user), db=Depends(db_session)):
     }
 
 
+@app.post("/api/weather/{id}/sample")
+def load_sample_weather(
+    id: str, body: dict, account=Depends(official), db=Depends(db_session)
+):
+    get_record(db, id, "locations")
+    # Serialize explicit cache replacement against concurrent live refreshes.
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:key))"), {"key": "weather-" + id}
+    )
+    r = db.get(Record, "weather-" + id)
+    if r and not r.data.get("simulated") and body.get("replaceLive") is not True:
+        raise HTTPException(
+            409,
+            "A live forecast is cached. Confirm replacement before loading sample weather.",
+        )
+    data = sample_weather(now())
+    if r:
+        r.data = data
+        r.updated = now()
+    else:
+        r = add_record(db, "weather", data, id="weather-" + id)
+    audit(db, account, "weather:sample", id)
+    return {**data, "available": True, "stale": False, "updatedAt": r.updated}
+
+
 @app.post("/api/weather/{id}/refresh")
 def refresh_weather(id: str, account=Depends(official), db=Depends(db_session)):
     loc = get_record(db, id, "locations")
@@ -839,7 +865,10 @@ def refresh_weather(id: str, account=Depends(official), db=Depends(db_session)):
         hourly = data["hourly"]
         hours = hourly["time"]
         rain = hourly["precipitation"]
-        if len(hours) != len(rain) or not hours:
+        if not hours or any(
+            len(hourly[k]) != len(hours)
+            for k in ("precipitation", "temperature_2m", "relative_humidity_2m")
+        ):
             raise ValueError("Invalid forecast response")
         from datetime import datetime, timezone
 
@@ -847,6 +876,9 @@ def refresh_weather(id: str, account=Depends(official), db=Depends(db_session)):
             datetime.fromisoformat(t).replace(tzinfo=timezone.utc).timestamp()
             for t in hours
         ]
+
+        if len(set(parsed)) != len(parsed) or parsed != sorted(parsed):
+            raise ValueError("Forecast timestamps must be unique and ordered")
 
         def total(a, b):
             values = [v for t, v in zip(parsed, rain) if a <= t < b]
@@ -880,6 +912,9 @@ def refresh_weather(id: str, account=Depends(official), db=Depends(db_session)):
             502,
             "Weather provider unavailable; cached values, if any, are retained. Check network access to api.open-meteo.com.",
         ) from exc
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:key))"), {"key": "weather-" + id}
+    )
     r = db.get(Record, "weather-" + id)
     if not r:
         r = add_record(db, "weather", result, id="weather-" + id)

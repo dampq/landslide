@@ -1,7 +1,14 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 const assets = readdirSync("dist/assets").map((p) => "/assets/" + p);
-const files = ["/index.html", "/manifest.webmanifest", "/icon.svg", ...assets];
+const files = [
+  "/index.html",
+  "/manifest.webmanifest",
+  "/icon.svg",
+  "/reference-map.geojson",
+  "/reference-map-source.json",
+  ...assets,
+];
 const version = createHash("sha256")
   .update(files.map((p) => readFileSync("dist" + p)).join(""))
   .digest("hex")

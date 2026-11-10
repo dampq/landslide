@@ -1,3 +1,4 @@
+import { locale } from "./i18n";
 import { useCallback, useEffect, useState, useRef } from "react";
 export type Account = {
   id: string;
@@ -40,7 +41,11 @@ export async function api<T = any>(
     if (response.status === 401 && !path.startsWith("/api/auth/"))
       window.dispatchEvent(new Event("session-expired"));
     const error = new Error(
-      typeof detail === "string" ? detail : JSON.stringify(detail),
+      Array.isArray(detail)
+        ? "Some fields are invalid. Check the form and try again."
+        : typeof detail === "string"
+          ? detail
+          : "Some fields are invalid. Check the form and try again.",
     ) as Error & { status: number };
     error.status = response.status;
     throw error;
@@ -92,7 +97,9 @@ export function useOnline() {
   return online;
 }
 export function time(value: number) {
-  return new Date(value * 1000).toLocaleString();
+  return new Date(value * 1000).toLocaleString(
+    locale(document.documentElement.lang),
+  );
 }
 export type Queued = {
   key: string;

@@ -1,4 +1,6 @@
-import Basemap from "./components/Basemap";
+import RequestError from "./components/RequestError";
+import { locale } from "./i18n";
+import Basemap, { type BasemapStatus } from "./components/Basemap";
 import {
   useEffect,
   useState,
@@ -63,7 +65,9 @@ function Heading({
         <h1 className="text-2xl font-black text-slate-900 md:text-3xl">
           {t(title)}
         </h1>
-        {sub && <p className="mt-2 max-w-3xl text-sm text-slate-600">{sub}</p>}
+        {sub && (
+          <p className="mt-2 max-w-3xl text-sm text-slate-600">{t(sub)}</p>
+        )}
       </div>
       {children}
     </div>
@@ -81,7 +85,7 @@ function Load({
   const { t } = useApp();
   return query.error ? (
     <div className="error mb-4" role="alert">
-      {query.error}{" "}
+      <RequestError message={query.error} />{" "}
       <button className="underline" onClick={query.refresh}>
         {t("Try again")}
       </button>
@@ -147,9 +151,9 @@ function Result({ job }: { job: ReturnType<typeof useAction> }) {
   return (
     <>
       {job.error && (
-        <p className="error my-3" role="alert">
-          {job.error}
-        </p>
+        <div className="error my-3" role="alert">
+          <RequestError message={job.error} />
+        </div>
       )}
       {job.message && (
         <p className="success my-3" role="status">
@@ -191,6 +195,7 @@ function Export({ kind }: { kind: string }) {
   );
 }
 function Chart({ data, line = false }: { data: any[]; line?: boolean }) {
+  const { t } = useApp();
   if (!data.length) return <Empty />;
   return (
     <div className="mt-4 h-64 min-w-0">
@@ -200,7 +205,7 @@ function Chart({ data, line = false }: { data: any[]; line?: boolean }) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" fontSize={11} />
             <YAxis />
-            <Tooltip />
+            <Tooltip formatter={(value: any) => [value, t("Count")]} />
             <Line
               type="monotone"
               dataKey="count"
@@ -213,7 +218,7 @@ function Chart({ data, line = false }: { data: any[]; line?: boolean }) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" fontSize={11} />
             <YAxis allowDecimals={false} />
-            <Tooltip />
+            <Tooltip formatter={(value: any) => [value, t("Count")]} />
             <Bar dataKey="count" fill="#2563eb" radius={[6, 6, 0, 0]} />
           </BarChart>
         )}
@@ -223,7 +228,7 @@ function Chart({ data, line = false }: { data: any[]; line?: boolean }) {
 }
 
 export function Dashboard() {
-  const { account, t } = useApp();
+  const { account, t, lang } = useApp();
   const query = useData("/api/dashboard"),
     notifications = useData("/api/records/notifications");
   const job = useAction();
@@ -239,7 +244,7 @@ export function Dashboard() {
     <>
       <Heading
         title="Dashboard"
-        sub={`${account?.name} · ${new Date().toLocaleDateString()}`}
+        sub={`${account?.name} · ${new Date().toLocaleDateString(locale(lang))}`}
       />
       <Load query={query} />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
@@ -249,16 +254,20 @@ export function Dashboard() {
             <strong className="mt-2 block text-3xl">
               {query.data?.counts[key] ?? "—"}
             </strong>
-            <div className="mt-2 text-xs text-slate-500">Stored records</div>
+            <div className="mt-2 text-xs text-slate-500">
+              {t("Stored records")}
+            </div>
           </Card>
         ))}
       </div>
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <Card className="p-5">
           <h2 className="font-bold">{t("Field data")}</h2>
-          <p className="my-3 text-sm text-slate-600">{query.data?.notice}</p>
+          <p className="my-3 text-sm text-slate-600">
+            {t(query.data?.notice || "")}
+          </p>
           <p className="text-sm">
-            Labelled sample records: {query.data?.sampleRecords ?? "—"}
+            {t("Labelled sample records:")} {query.data?.sampleRecords ?? "—"}
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
@@ -275,13 +284,16 @@ export function Dashboard() {
         <Card className="p-5">
           <h2 className="font-bold">{t("Model integration")}</h2>
           <p className="mt-3 text-sm text-slate-600">
-            {query.data?.modelConfigured
-              ? "Model path configured; verify availability in the model portal."
-              : "The external Random Forest model has not been supplied. No ML probabilities are fabricated."}
+            {t(
+              query.data?.modelConfigured
+                ? "Model path configured; verify availability in the model portal."
+                : "The external Random Forest model has not been supplied. No ML probabilities are fabricated.",
+            )}
           </p>
           <p className="mt-3 text-sm text-slate-600">
-            No satellite or physical sensor feed is claimed to be live.
-            OpenStreetMap and weather access depend on network availability.
+            {t(
+              "No satellite or physical sensor feed is claimed to be live. OpenStreetMap and weather access depend on network availability.",
+            )}{" "}
           </p>
         </Card>
       </div>
@@ -336,17 +348,17 @@ function ReportCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <b>
-            {row.incident} · {row.location}
+            {t(row.incident)} · {row.location}
           </b>
           <p className="mt-1 text-xs text-slate-500">
-            {time(row.createdAt)} · {row.reporterRole}
+            {time(row.createdAt)} · {t(row.reporterRole)}
           </p>
         </div>
         <Risk value={row.status} />
       </div>
       <p className="my-3 whitespace-pre-wrap text-sm">{row.description}</p>
       <p className="text-xs text-slate-500">
-        GPS: {row.lat}, {row.lng}
+        {t("GPS:")} {row.lat}, {row.lng}
       </p>
       {row.verificationNote && (
         <p className="mt-3 rounded-lg bg-blue-50 p-3 text-sm">
@@ -380,12 +392,12 @@ function ReportCard({
               </a>
               {m.processing.width && (
                 <p className="mt-2 text-xs">
-                  OpenCV: {m.processing.width} × {m.processing.height} px ·
-                  brightness {m.processing.brightness} · sharpness{" "}
-                  {m.processing.sharpness} · edge fraction{" "}
-                  {m.processing.edgeFraction}
+                  {t("OpenCV:")} {m.processing.width} × {m.processing.height}{" "}
+                  {t("px · brightness")} {m.processing.brightness}
+                  {t("· sharpness")} {m.processing.sharpness}
+                  {t("· edge fraction")} {m.processing.edgeFraction}
                   <br />
-                  {m.processing.classification}
+                  {t(m.processing.classification)}
                 </p>
               )}
             </div>
@@ -443,7 +455,8 @@ export function Reports() {
   const job = useAction();
   const [files, setFiles] = useState<File[]>([]),
     [gps, setGps] = useState({ lat: "", lng: "" }),
-    [message, setMessage] = useState("");
+    [message, setMessage] = useState(""),
+    [syncError, setSyncError] = useState("");
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
@@ -451,6 +464,7 @@ export function Reports() {
     await job.run(async () => {
       if (files.length > 5 || files.some((f) => f.size > 10_000_000))
         throw new Error("Up to 5 files, each under 10 MB.");
+      setSyncError("");
       const report = {
         clientId: crypto.randomUUID(),
         incident: values.incident,
@@ -474,19 +488,18 @@ export function Reports() {
         files,
         created: Date.now(),
       });
-      setMessage(t("Report saved to this device"));
+      setMessage("Report saved to this device");
       form.reset();
       setFiles([]);
       setGps({ lat: "", lng: "" });
       if (online) {
         try {
           await syncQueue(account!.id);
-          setMessage(t("Report sent"));
+          setMessage("Report sent");
           await query.refresh();
         } catch (e) {
-          setMessage(
-            t("Report saved to this device") + " — " + (e as Error).message,
-          );
+          setMessage("Report saved to this device");
+          setSyncError((e as Error).message);
         }
       }
     }, "");
@@ -509,7 +522,9 @@ export function Reports() {
                 "Damaged Bridge",
                 "Other",
               ].map((v) => (
-                <option key={v}>{v}</option>
+                <option key={v} value={v}>
+                  {t(v)}
+                </option>
               ))}
             </Select>
           </Field>
@@ -570,7 +585,14 @@ export function Reports() {
                         });
                         resolve();
                       },
-                      (e) => reject(new Error(e.message)),
+                      (e) =>
+                        reject(
+                          new Error(
+                            e.code === 1
+                              ? "Location permission denied. Enter coordinates manually."
+                              : "Location could not be determined. Enter coordinates manually.",
+                          ),
+                        ),
                       { enableHighAccuracy: true, timeout: 15000 },
                     );
                   }),
@@ -601,8 +623,9 @@ export function Reports() {
                 onChange={(e) => setFiles(Array.from(e.target.files || []))}
               />
               <small>
-                JPEG, PNG, WebP, MP4 · 5 files maximum · 10 MB each. Files are
-                stored with your report, including offline.
+                {t(
+                  "JPEG, PNG, WebP, MP4 · 5 files maximum · 10 MB each. Files are stored with your report, including offline.",
+                )}{" "}
               </small>
             </Field>
           </div>
@@ -617,7 +640,8 @@ export function Reports() {
         <Result job={job} />
         {message && (
           <p className="success mt-3" role="status">
-            {message}
+            {t(message)}
+            {syncError && <> — {t(syncError)}</>}
           </p>
         )}
       </Card>
@@ -732,6 +756,25 @@ const fieldDefs: Record<string, FieldDef[]> = {
     { key: "action", label: "Action", required: true },
   ],
 };
+const recordLabels: Record<string, string> = {
+  ...Object.fromEntries(
+    Object.values(fieldDefs)
+      .flat()
+      .map((f) => [f.key, f.label]),
+  ),
+  value: "Value",
+  unit: "Unit",
+  feature: "Feature",
+  rainfall72hMm: "Rainfall past 72h (mm)",
+  soilMoisturePercent: "Soil moisture (%)",
+  groundMovementMmPerHour: "Ground movement (mm/hour)",
+  slopeDegrees: "Slope (degrees)",
+  observedAt: "Observed at",
+  locationId: "Location ID",
+  status: "Status",
+  level: "Severity",
+};
+
 function RecordForm({
   kind,
   refresh,
@@ -768,7 +811,7 @@ function RecordForm({
   return (
     <Card className="my-4 p-5">
       <h2 className="mb-4 font-bold">
-        {t(editing ? "Review" : "Create")} · {kind}
+        {t(editing ? "Review" : "Create")} · {t(kind)}
       </h2>
       <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
         {fieldDefs[kind].map((f) => (
@@ -831,7 +874,7 @@ function RecordForm({
           </Button>
           {onClose && (
             <Button type="button" variant="outline" onClick={onClose}>
-              Close
+              {t("Close")}{" "}
             </Button>
           )}
         </div>
@@ -923,14 +966,20 @@ function RecordList({
                 )
                 .map(([k, v]) => (
                   <div key={k} className="flex flex-wrap justify-between gap-2">
-                    <dt className="text-slate-500">{k}</dt>
-                    <dd className="max-w-full break-words">{String(v)}</dd>
+                    <dt className="text-slate-500">
+                      {t(recordLabels[k] || k)}
+                    </dt>
+                    <dd className="max-w-full break-words">
+                      {["status", "level", "type", "reporterRole"].includes(k)
+                        ? t(String(v))
+                        : String(v)}
+                    </dd>
                   </div>
                 ))}
             </dl>
             {r.lat != null && (
               <p className="mt-2 text-xs text-slate-500">
-                GPS {r.lat}, {r.lng}
+                {t("GPS")} {r.lat}, {r.lng}
               </p>
             )}
             <Sample row={r} />
@@ -953,8 +1002,9 @@ function RecordList({
       </div>
       {query.data?.total > 100 && (
         <p className="mt-3 text-sm">
-          Showing the first 100 matches; narrow the search. CSV exports include
-          up to 10,000 records.
+          {t(
+            "Showing the first 100 matches; narrow the search. CSV exports include up to 10,000 records.",
+          )}{" "}
         </p>
       )}
     </>
@@ -992,9 +1042,9 @@ export function Monitoring() {
       {tab === "sensors" && (
         <Card className="mt-4 p-4">
           <p className="mb-3 text-sm">
-            This simulator generates rainfall, soil-moisture and ground-movement
-            demonstration readings only. It does not contact physical sensors,
-            run predictions or issue warnings.
+            {t(
+              "This simulator generates rainfall, soil-moisture and ground-movement demonstration readings only. It does not contact physical sensors, run predictions or issue warnings.",
+            )}{" "}
           </p>
           {account?.role !== "citizen" && (
             <Button
@@ -1049,9 +1099,9 @@ function Exposure({ locationId }: { locationId: string }) {
           <p className="my-3 text-3xl font-black">
             ≈{" "}
             {query.data.approximatePopulation?.toLocaleString() ??
-              "Unavailable"}
+              t("Unavailable")}
           </p>
-          <p className="text-sm text-slate-600">{query.data.method}</p>
+          <p className="text-sm text-slate-600">{t(query.data.method)}</p>
           <Sample
             row={{
               simulated: query.data.simulated,
@@ -1059,7 +1109,7 @@ function Exposure({ locationId }: { locationId: string }) {
             }}
           />
           <p className="mt-3 text-sm">
-            Nearby geographic records: {query.data.items.length}
+            {t("Nearby geographic records:")} {query.data.items.length}
           </p>
         </>
       )}
@@ -1068,7 +1118,13 @@ function Exposure({ locationId }: { locationId: string }) {
 }
 export function MapPage() {
   const { t } = useApp();
-  const [tileStatus, setTileStatus] = useState("");
+  const [tileStatus, setTileStatus] = useState<BasemapStatus>(null);
+  const [provider, setProvider] = useState(
+    localStorage.getItem("ashtaraksha-basemap") ||
+      import.meta.env.VITE_MAP_PROVIDER ||
+      "auto",
+  );
+  const [retry, setRetry] = useState(0);
   const [layers, setLayers] = useState([
     "locations",
     "roads",
@@ -1113,9 +1169,34 @@ export function MapPage() {
                 )
               }
             />
-            {l}
+            {t(l)}
           </label>
         ))}
+      </div>
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <Field label="Background map">
+          <Select
+            value={provider}
+            onChange={(e) => {
+              setProvider(e.target.value);
+              localStorage.setItem("ashtaraksha-basemap", e.target.value);
+            }}
+          >
+            {[
+              ["auto", "Automatic: online with reference fallback"],
+              ["reference", "Regional reference (offline)"],
+              ["osm", "OpenStreetMap (online)"],
+              ["carto", "CARTO (configured key)"],
+            ].map(([value, label]) => (
+              <option key={value} value={value}>
+                {t(label)}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Button variant="outline" onClick={() => setRetry((v) => v + 1)}>
+          {t("Retry basemap")}
+        </Button>
       </div>
       <Load query={query} />
       {tileStatus && (
@@ -1123,13 +1204,17 @@ export function MapPage() {
           role="status"
           className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
         >
-          {tileStatus}
+          {t(tileStatus.message, tileStatus.params)}
         </div>
       )}
       <Card className="overflow-hidden">
         <div className="h-[540px] max-h-[70vh]">
           <MapContainer center={[25.9, 92.5]} zoom={6} scrollWheelZoom>
-            <Basemap onStatus={setTileStatus} />
+            <Basemap
+              key={`${provider}:${retry}`}
+              provider={provider}
+              onStatus={setTileStatus}
+            />
             {query.data?.features.map((f: any) => {
               const p = f.properties;
               return (
@@ -1145,7 +1230,7 @@ export function MapPage() {
                   <Popup>
                     <b>{p.name}</b>
                     <p>
-                      {p.kind} · {p.status || p.level || ""}
+                      {t(p.kind)} · {t(p.status || p.level || "")}
                     </p>
                     <Sample row={p} />
                     {p.kind === "locations" && (
@@ -1164,9 +1249,14 @@ export function MapPage() {
         </div>
       </Card>
       <p className="mt-3 text-xs text-slate-500">
-        Red: critical / blocked · Purple: historical records · Green: population
-        points · Blue: other records. Roads are representative points, not
-        surveyed road geometries.
+        {t(
+          "Red: critical / blocked · Purple: historical records · Green: population points · Blue: other records. Roads are representative points, not surveyed road geometries.",
+        )}{" "}
+      </p>
+      <p className="mt-2 text-xs text-slate-500">
+        {t(
+          "Reference boundaries are approximate cartographic context, not authoritative boundary claims. No street or terrain detail is implied.",
+        )}
       </p>
       {selected && <Exposure locationId={selected} />}
     </>
@@ -1208,7 +1298,28 @@ function Forecast({ id }: { id: string }) {
   const job = useAction();
   return (
     <>
-      <div className="flex items-center gap-3">
+      {query.data?.available && (
+        <div
+          role="note"
+          className={`mb-4 rounded-xl border p-4 ${query.data.simulated ? "border-amber-300 bg-amber-50" : "border-blue-200 bg-blue-50"}`}
+        >
+          <b>
+            {t(
+              query.data.simulated
+                ? "Sample weather — simulated"
+                : "Open-Meteo weather — modelled",
+            )}
+          </b>
+          <p className="mt-1 text-sm">
+            {t(
+              query.data.simulated
+                ? "These invented values demonstrate the website. They are not current conditions and must not be used for warnings."
+                : "Provider-modelled rainfall and forecasts, not rain-gauge observations. Check the timestamp before using them.",
+            )}
+          </p>
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
         {account?.role !== "citizen" && (
           <Button
             disabled={job.busy}
@@ -1221,6 +1332,33 @@ function Forecast({ id }: { id: string }) {
           >
             <RefreshCw size={16} />
             {t("Refresh forecast")}
+          </Button>
+        )}
+        {account?.role !== "citizen" && (
+          <Button
+            variant="outline"
+            disabled={job.busy}
+            onClick={() => {
+              const replaceLive =
+                query.data?.available && !query.data.simulated;
+              if (
+                replaceLive &&
+                !window.confirm(
+                  t(
+                    "Replace the cached live forecast with clearly labelled sample weather?",
+                  ),
+                )
+              )
+                return;
+              void job.run(async () => {
+                await post(`/api/weather/${id}/sample`, {
+                  replaceLive: !!replaceLive,
+                });
+                await query.refresh();
+              });
+            }}
+          >
+            {t("Load sample weather")}
           </Button>
         )}
         <Button variant="outline" onClick={query.refresh}>
@@ -1238,15 +1376,15 @@ function Forecast({ id }: { id: string }) {
               ["Forecast next 24h", query.data.forecast24h],
             ].map(([n, v]) => (
               <Card className="p-5" key={n}>
-                <div className="text-sm text-slate-500">{n}</div>
+                <div className="text-sm text-slate-500">{t(String(n))}</div>
                 <strong className="text-3xl">
-                  {v == null ? "Unavailable" : Number(v).toFixed(1) + " mm"}
+                  {v == null ? t("Unavailable") : Number(v).toFixed(1) + " mm"}
                 </strong>
               </Card>
             ))}
           </div>
           <Card className="mt-5 p-5">
-            <b>Hourly rainfall (mm)</b>
+            <b>{t("Hourly rainfall (mm)")}</b>
             <Chart
               line
               data={query.data.hourly.map((h: any) => ({
@@ -1256,15 +1394,17 @@ function Forecast({ id }: { id: string }) {
             />
             <p className="text-sm">{query.data.attribution}</p>
             <p className="mt-2 text-xs">
-              Updated: {time(query.data.updatedAt)} ·{" "}
-              {query.data.stale ? "Stale (over one hour old)" : "Fresh cache"}
+              {t("Updated:")} {time(query.data.updatedAt)} ·{" "}
+              {t(
+                query.data.stale ? "Stale (over one hour old)" : "Fresh cache",
+              )}
             </p>
             <Sample row={query.data} />
           </Card>
         </>
       ) : (
         <Card className="mt-5 p-5">
-          {query.data?.message || t("No cached forecast")}
+          {t(query.data?.message || "No cached forecast")}
         </Card>
       )}
     </>
@@ -1276,7 +1416,7 @@ export function Weather() {
     <>
       <Heading
         title="Weather"
-        sub="Open-Meteo modelled rainfall and forecasts. Provider failures retain the last cache; no sample values are substituted."
+        sub="Refresh live modelled weather when connected, or explicitly load labelled samples for a demonstration. Provider failures never silently replace live data with samples."
       />
       <LocationSelect value={id} onChange={setId} />
       {id && <Forecast key={id} id={id} />}
@@ -1284,6 +1424,14 @@ export function Weather() {
   );
 }
 
+const modelFeatureLabels: Record<string, string> = {
+  rainfall24h: "Rainfall past 24h (mm)",
+  rainfall72h: "Rainfall past 72h (mm)",
+  soilMoisture: "Soil saturation (%)",
+  slope: "Slope (degrees)",
+  groundMovement: "Ground movement (mm/hour)",
+  historicalEvents: "Historical event count",
+};
 export function Prediction() {
   const { t } = useApp();
   const query = useData("/api/model"),
@@ -1319,14 +1467,14 @@ export function Prediction() {
       {query.data && !query.data.available && (
         <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
           <b>{t("No model supplied")}</b>
-          <p className="mt-2 text-sm">{query.data.message}</p>
+          <p className="mt-2 text-sm">{t(query.data.message)}</p>
         </div>
       )}
       <Card className="p-5">
         <LocationSelect value={id} onChange={setId} />
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
           {query.data?.features.map((f: any) => (
-            <Field key={f.name} label={`${f.name} (${f.unit})`}>
+            <Field key={f.name} label={modelFeatureLabels[f.name] || f.name}>
               <Input
                 name={f.name}
                 type="number"
@@ -1354,10 +1502,10 @@ export function Prediction() {
         {result && (
           <div className="success mt-4">
             <b>
-              {(result.probability * 100).toFixed(1)}% · model{" "}
-              {result.modelVersion}
+              {(result.probability * 100).toFixed(1)}
+              {t("% · model")} {result.modelVersion}
             </b>
-            <p>{result.notice}</p>
+            <p>{t(result.notice)}</p>
           </div>
         )}
       </Card>
@@ -1483,8 +1631,8 @@ export function ResponsePage() {
               <strong>{r.priorityScore}/100</strong>
             </div>
             <p className="my-3 text-sm">
-              ≈ {r.exposure ?? "unknown"} people · {r.blockedRoads} blocked
-              roads
+              ≈ {r.exposure ?? t("unknown")} {t("people ·")} {r.blockedRoads}{" "}
+              {t("blocked roads")}{" "}
             </p>
             <Risk value={r.level || "Low"} />
             <Sample row={r} />
@@ -1618,11 +1766,13 @@ export function History() {
       </div>
       {tab === "satellite" && (
         <Card className="my-5 p-5">
-          <h2 className="font-bold">Copernicus Sentinel-1 / Sentinel-2</h2>
+          <h2 className="font-bold">
+            {t("Copernicus Sentinel-1 / Sentinel-2")}
+          </h2>
           <p className="my-3 text-sm">
-            Explore publicly available radar and optical imagery in Copernicus
-            Browser. Cloud cover, acquisition dates and access terms affect
-            availability. No imagery feed or landslide classifier is claimed.
+            {t(
+              "Explore publicly available radar and optical imagery in Copernicus Browser. Cloud cover, acquisition dates and access terms affect availability. No imagery feed or landslide classifier is claimed.",
+            )}{" "}
           </p>
           <a
             href="https://browser.dataspace.copernicus.eu/"
@@ -1630,7 +1780,7 @@ export function History() {
             rel="noreferrer"
             className="text-blue-700 underline"
           >
-            Open Copernicus Browser ↗
+            {t("Open Copernicus Browser ↗")}{" "}
           </a>
         </Card>
       )}
@@ -1654,9 +1804,9 @@ export function History() {
             >
               {s.name} ↗
             </a>
-            <p className="mt-2 text-sm font-semibold">{s.purpose}</p>
-            <p className="mt-2 text-sm text-slate-600">{s.access}</p>
-            <p className="mt-2 text-xs text-slate-500">{s.license}</p>
+            <p className="mt-2 text-sm font-semibold">{t(s.purpose)}</p>
+            <p className="mt-2 text-sm text-slate-600">{t(s.access)}</p>
+            <p className="mt-2 text-xs text-slate-500">{t(s.license)}</p>
           </Card>
         ))}
       </div>
@@ -1665,6 +1815,7 @@ export function History() {
 }
 
 export function Analytics() {
+  const { t } = useApp();
   const query = useData("/api/analytics");
   return (
     <>
@@ -1680,9 +1831,14 @@ export function Analytics() {
           ["history", "Imported historical events by month", "history"],
         ].map(([key, title, kind]) => (
           <Card className="min-w-0 p-5" key={key}>
-            <h2 className="mb-3 font-bold">{title}</h2>
+            <h2 className="mb-3 font-bold">{t(title)}</h2>
             <Export kind={kind} />
-            <Chart data={query.data?.[key] || []} />
+            <Chart
+              data={(query.data?.[key] || []).map((row: any) => ({
+                ...row,
+                name: t(row.name),
+              }))}
+            />
           </Card>
         ))}
       </div>
@@ -1715,9 +1871,9 @@ export function Offline() {
           {t("Pending uploads")}
         </p>
         <p className="mb-4 text-sm text-slate-600">
-          Only pending submissions are stored offline. Submitted reports,
-          warnings and map tiles require a connection. On a shared device,
-          delete pending reports before handing it over.
+          {t(
+            "Only pending submissions are stored offline. Submitted reports, warnings and map tiles require a connection. On a shared device, delete pending reports before handing it over.",
+          )}{" "}
         </p>
         <Button
           disabled={!online || job.busy}
@@ -1739,14 +1895,18 @@ export function Offline() {
         {rows.map((r) => (
           <Card className="p-5" key={r.key}>
             <b>
-              {r.report.incident} · {r.report.location}
+              {t(r.report.incident)} · {r.report.location}
             </b>
             <p className="my-2 text-sm">{r.report.description}</p>
             <p className="text-xs">
-              {r.files.length} files remaining ·{" "}
+              {r.files.length} {t("files remaining ·")}{" "}
               {new Date(r.created).toLocaleString()}
             </p>
-            {r.error && <p className="error mt-3">{r.error}</p>}
+            {r.error && (
+              <div className="error mt-3">
+                <RequestError message={r.error} />
+              </div>
+            )}
             <Button
               variant="danger"
               className="mt-3"
@@ -1758,7 +1918,9 @@ export function Offline() {
                     );
                   if (
                     window.confirm(
-                      "Permanently delete this pending report and its local attachments?",
+                      t(
+                        "Permanently delete this pending report and its local attachments?",
+                      ),
                     )
                   ) {
                     await queueDelete(r.key);
@@ -1782,7 +1944,10 @@ export function Admin() {
     system = useData("/api/admin/system");
   const [kind, setKind] = useState("history"),
     [input, setInput] = useState(""),
-    [result, setResult] = useState("");
+    [result, setResult] = useState<{
+      inserted: number;
+      unchanged: number;
+    } | null>(null);
   const job = useAction();
   return (
     <>
@@ -1808,7 +1973,7 @@ export function Admin() {
                 <td>{u.email}</td>
                 <td>
                   <Select
-                    aria-label={"Role for " + u.email}
+                    aria-label={t("Role for {email}", { email: u.email })}
                     disabled={u.id === account?.id || job.busy}
                     value={u.role}
                     onChange={(e) =>
@@ -1849,7 +2014,7 @@ export function Admin() {
                       })
                     }
                   >
-                    {u.active ? "Deactivate" : "Activate"}
+                    {t(u.active ? "Deactivate" : "Activate")}
                   </Button>
                 </td>
               </tr>
@@ -1860,17 +2025,17 @@ export function Admin() {
       <Card className="my-5 p-5">
         <h2 className="mb-3 font-bold">{t("Import data")}</h2>
         <p className="mb-3 text-sm text-slate-600">
-          JSON {`{items:[...]}`} or point GeoJSON FeatureCollection, up to 500
-          records per batch. Every record needs source and simulated
-          (true/false). Repeating identical records is idempotent. Real
-          population records also require year, resolutionM and license.
+          {t("JSON")} {`{items:[...]}`}{" "}
+          {t(
+            "or point GeoJSON FeatureCollection, up to 500 records per batch. Every record needs source and simulated (true/false). Repeating identical records is idempotent. Real population records also require year, resolutionM and license.",
+          )}{" "}
         </p>
         <a
           className="text-sm text-blue-700 underline"
           href="/sample-import.json"
           download
         >
-          Download sample import format
+          {t("Download sample import format")}{" "}
         </a>
         <form
           className="mt-4 space-y-3"
@@ -1879,17 +2044,21 @@ export function Admin() {
             void job.run(async () => {
               const result = await post(
                 "/api/admin/import/" + kind,
-                JSON.parse(input),
+                (() => {
+                  try {
+                    return JSON.parse(input);
+                  } catch {
+                    throw new Error("The import file is not valid JSON.");
+                  }
+                })(),
               );
-              setResult(
-                `${result.inserted} imported; ${result.unchanged} unchanged`,
-              );
+              setResult(result);
               await system.refresh();
             });
           }}
         >
           <Select
-            aria-label="Import collection"
+            aria-label={t("Import collection")}
             value={kind}
             onChange={(e) => setKind(e.target.value)}
           >
@@ -1901,7 +2070,9 @@ export function Admin() {
               "infrastructure",
               "satellite",
             ].map((v) => (
-              <option key={v}>{v}</option>
+              <option key={v} value={v}>
+                {t(v)}
+              </option>
             ))}
           </Select>
           <Field label="JSON / GeoJSON">
@@ -1916,23 +2087,27 @@ export function Admin() {
             {t("Import data")}
           </Button>
         </form>
-        {result && <p className="success mt-3">{result}</p>}
+        {result && (
+          <p className="success mt-3">
+            {t("{inserted} imported; {unchanged} unchanged", result)}
+          </p>
+        )}
       </Card>
       <Load query={system} />
       <Card className="overflow-auto p-5">
-        <h2 className="mb-4 font-bold">System / audit</h2>
+        <h2 className="mb-4 font-bold">{t("System / audit")}</h2>
         <p className="text-sm">
-          Database: {system.data?.health.database} · PostGIS{" "}
-          {system.data?.health.postgis}
+          {t("Database:")} {system.data?.health.database}
+          {t("· PostGIS")} {system.data?.health.postgis}
         </p>
-        <p className="my-2 text-sm">{system.data?.notificationMode}</p>
+        <p className="my-2 text-sm">{t(system.data?.notificationMode || "")}</p>
         <table className="data-table">
           <thead>
             <tr>
-              <th>Time</th>
-              <th>Action</th>
-              <th>Actor</th>
-              <th>Target</th>
+              <th>{t("Time")}</th>
+              <th>{t("Action")}</th>
+              <th>{t("Actor")}</th>
+              <th>{t("Target")}</th>
             </tr>
           </thead>
           <tbody>
@@ -1940,7 +2115,7 @@ export function Admin() {
               <tr key={i}>
                 <td>{time(a.at)}</td>
                 <td>{a.action}</td>
-                <td>{a.actor || "Local management"}</td>
+                <td>{a.actor || t("Local management")}</td>
                 <td>{a.target}</td>
               </tr>
             ))}
@@ -1985,7 +2160,7 @@ export function Settings() {
         >
           <Field label="Language">
             <Select value={lang} onChange={(e) => setLang(e.target.value)}>
-              <option value="en">English</option>
+              <option value="en">{t("English")}</option>
               <option value="hi">हिन्दी</option>
               <option value="as">অসমীয়া</option>
             </Select>
@@ -2007,10 +2182,9 @@ export function Settings() {
         </form>
         <Result job={job} />
         <p className="mt-5 text-sm text-slate-600">
-          The core portal interface supports English, Hindi and Assamese. User
-          reports, dataset attribution and source documents retain their
-          original language. In-app notifications are delivered when an official
-          publishes an alert. No paid SMS service is required.
+          {t(
+            "The core portal interface supports English, Hindi and Assamese. User reports, dataset attribution and source documents retain their original language. In-app notifications are delivered when an official publishes an alert. No paid SMS service is required.",
+          )}{" "}
         </p>
       </Card>
     </>
