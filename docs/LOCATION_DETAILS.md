@@ -1,0 +1,16 @@
+# Location-detail suggestions
+
+In Monitoring → Locations → Create/Review, choose or type coordinates, then click **Look up location details**. Review the returned values and sources, then **Apply location suggestions**. Empty fields are filled by default. Select **Replace existing values with available suggestions** to overwrite existing entries explicitly. Unavailable fields remain unchanged. Save still requires the normal form validation and an explicit Save action.
+
+- **Name:** a nearby mapped village, town, city, hamlet, suburb or neighbourhood label, not a guaranteed exact address or the name of a specific road/facility.
+- **District:** the provider's explicit `state_district` field; no guessed district when absent.
+- **State:** point-in-polygon lookup against the supplied eight-state boundary, with the provider's state as a fallback outside that boundary.
+- **Slope:** containing-pixel sampling of the supplied WorldClim-derived `worldclim21_30s_slope_degrees_NER.tif`, in degrees. Requires the existing verified raster inventory/ready marker and matching file checksum. Raster source date/resolution and attribution are available in Source details. This coarse derived terrain surface is not an on-site slope measurement.
+
+Severity, road status, incident description, population, event time and sensor readings are not inferred. No model runs or records are saved by lookup alone. The trained artifacts and inference pipeline are unchanged.
+
+Coordinates are sent to public OpenStreetMap Nominatim only when the official presses the lookup button. No account or report information is sent. The backend uses a fixed HTTPS endpoint, identifying User-Agent, eight-second timeout, no redirects, shared PostgreSQL transaction lock/timestamp limiting requests to at most one every two seconds, and a 30-day coordinate cache shared across workers. Attribution is displayed. Public service access requires outbound HTTPS to `nominatim.openstreetmap.org`; provider errors/rate limiting/offline access return explicit unavailable fields while local boundary/terrain results remain usable. This is an occasional interactive lookup, not a bulk or tracking service. Provider use policy: https://operations.osmfoundation.org/policies/nominatim/ . Public data attribution: https://www.openstreetmap.org/copyright .
+
+Applied suggestions are saved with their coordinate/value/source metadata in `locationDetailsProvenance`. Manually editing a field removes its suggestion provenance. Changing coordinates clears unchanged applied values and their provenance, preserving manually edited values. Unsaved suggestions from a previous coordinate are discarded. Ordinary entered metadata remains a user statement; this is not independent verification.
+
+Validation is described in `VALIDATION.md`. API tests simulate provider success/failure and terrain results; browser tests use an explicitly mocked suggestion response. Real Nominatim access was attempted in this managed workspace on 13 November 2026 and blocked by its outbound allowlist (HTTP 403 CONNECT). Live provider labels and real raster pixels were not validated here. The user's separate Codespace may have different network access and holds the real raster bundle.

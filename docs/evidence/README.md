@@ -48,3 +48,9 @@ Final milestone outcome: `20261113T113333Z/outcomes.json` confirms 42 Python tes
 ## Shared location-picker run
 
 `20261113T172700Z/outcomes.json` records 58 passed Python and 31 passed browser tests, with no unexpected/skipped browser outcomes and all command exit codes zero. Source/log hashes were verified. It covers confirm/cancel semantics across raw coordinate forms and explicit existing-record map selection. See `../MAP_PICKERS.md`. Real raster acceptance remains separate from synthetic raster tests.
+
+## Reviewed location details — 13 November 2026
+
+Final run `docs/evidence/20261113T174054Z/` passed 60 Python tests and 32 Chromium browser tests, with no failed/skipped tests. Production build, 463-key/three-language translations, four configuration tests and dependency checks passed. All recorded source and log hashes were verified. API tests cover authorization, strict coordinates, provider failure/partial local results, shared provider caching/rate limiting, and verified-terrain sampling. Browser coverage verifies inspect-before-apply, manual-value preservation, explicit replacement, coordinate-change invalidation, persisted provenance and source display on saved location cards. The earlier `20261113T173845Z` run also passed 60/32 before the saved-card attribution display was added.
+
+Place-provider and terrain responses in the new tests are mocked; actual Nominatim access here was blocked by the managed outbound allowlist (HTTP 403 CONNECT), and real raster pixels were not sampled here. No predictive accuracy, live provider availability in the user's Codespace, or disaster-warning capability is established. See `LOCATION_DETAILS.md` for the interactive lookup, attribution, offline behavior and scope. Model artifacts and preprocessing remain unchanged.

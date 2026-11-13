@@ -985,3 +985,50 @@ def test_dispatch_rolls_back_verification_and_reservation_on_failure(actors,monk
         assert db.get(Record,rid).data['status']=='Awaiting Verification'
         assert db.get(Record,'demo-team-0').data['status']=='Available'
         assert db.scalar(select(func.count()).select_from(Record).where(Record.kind=='deployments'))==0
+
+
+def test_location_details_permissions_partial_offline_and_invalid_coordinates(actors, monkeypatch, tmp_path):
+    from api import location_details as details
+    monkeypatch.setenv('RASTER_DATA_ROOT', str(tmp_path))
+    calls = []
+    def offline(*args, **kwargs):
+        calls.append(kwargs)
+        raise details.httpx.ConnectError('offline')
+    monkeypatch.setattr(details.httpx.Client, 'get', offline)
+    assert actors['citizen'].post('/api/location/details', json={'lat': 26.19, 'lng': 91.71}).status_code == 403
+    for invalid in [{'lat': True, 'lng': 91}, {'lat': 91, 'lng': 91}, {'lat': 26, 'lng': 181}, {'lat': 26, 'lng': 91, 'url': 'http://localhost'}]:
+        assert actors['official'].post('/api/location/details', json=invalid).status_code == 422
+    result = actors['official'].post('/api/location/details', json={'lat': 26.19, 'lng': 91.71})
+    assert result.status_code == 200
+    data = result.json()
+    assert data['fields']['state'] == 'Assam'
+    assert set(data['unavailable']) == {'name', 'district', 'slope'}
+    assert 'level' not in data['fields'] and 'slope' not in data['fields']
+    assert calls[0]['params']['lat'] == 26.19
+    again = actors['official'].post('/api/location/details', json={'lat': 26.2, 'lng': 91.7})
+    assert 'busy' in again.json()['unavailable']['name']
+    assert len(calls) == 1
+
+
+def test_location_details_provider_cache_and_verified_slope(actors, monkeypatch):
+    from api import location_details as details
+    calls = []
+    def mapped(*args, **kwargs):
+        calls.append(kwargs)
+        return details.httpx.Response(200, request=details.httpx.Request('GET', details.PROVIDER),
+            json={'address': {'village': 'Test mapped village', 'state_district': 'Test district', 'state': 'Provider state'}})
+    monkeypatch.setattr(details.httpx.Client, 'get', mapped)
+    monkeypatch.setattr(details.environmental, 'inventory', lambda: ({}, 'test-inventory'))
+    checks = []
+    monkeypatch.setattr(details.environmental, 'verify_snapshot', lambda snapshot: checks.append(snapshot))
+    monkeypatch.setattr(details.environmental, 'sample', lambda *args: (12.5, {'resolution': [.008333, .008333], 'status': 'OK'}))
+    body = {'lat': 26.19, 'lng': 91.71}
+    data = actors['official'].post('/api/location/details', json=body).json()
+    assert data['fields'] == {'name': 'Test mapped village', 'district': 'Test district', 'state': 'Assam', 'slope': 12.5}
+    assert data['provenance']['name']['retrievedAt'] > 0
+    assert data['provenance']['slope']['unit'] == 'degrees'
+    assert checks[0]['provenance'][0]['file'].endswith('slope_degrees_NER.tif')
+    cached = actors['admin'].post('/api/location/details', json=body).json()
+    assert cached['fields'] == data['fields'] and len(calls) == 1
+    with Session() as db:
+        assert db.scalar(select(func.count()).select_from(Record).where(Record.kind == 'predictions')) == 0

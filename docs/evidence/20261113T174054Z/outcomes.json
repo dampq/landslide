@@ -1,0 +1,19 @@
+{
+  "source_hashes_verified": true,
+  "log_hashes_verified": true,
+  "pytest": {
+    "tests": 60,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "browser": {
+    "startTime": "2026-11-13T17:41:40.505Z",
+    "duration": 59023.056000000004,
+    "expected": 32,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "live_provider_note": "Nominatim attempted here but blocked by outbound allowlist (HTTP 403 CONNECT); automated provider/terrain tests use mocks. No real raster pixels validated here."
+}

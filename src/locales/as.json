@@ -454,5 +454,12 @@
   "Selected map position": "মানচিত্ৰত নিৰ্বাচিত স্থান",
   "Use selected saved location": "নিৰ্বাচিত সংৰক্ষিত স্থান ব্যৱহাৰ কৰক",
   "Use selected coordinates": "নিৰ্বাচিত স্থানাংক ব্যৱহাৰ কৰক",
-  "Cancel map selection": "মানচিত্ৰৰ বাছনি বাতিল কৰক"
+  "Cancel map selection": "মানচিত্ৰৰ বাছনি বাতিল কৰক",
+  "Look up place details using these coordinates. This sends the coordinates to OpenStreetMap Nominatim. Terrain lookup uses local prepared data.": "এই স্থানাংকৰ পৰা স্থানৰ বিৱৰণ বিচাৰক। স্থানাংক OpenStreetMap Nominatim লৈ পঠোৱা হয়। ভূভাগৰ তথ্য স্থানীয় প্ৰস্তুত তথ্যৰ পৰা লোৱা হয়।",
+  "Look up location details": "স্থানৰ বিৱৰণ বিচাৰক",
+  "Review suggestions against the map. Nearby mapped addresses may be approximate. Severity is not inferred.": "মানচিত্ৰৰ সৈতে পৰামৰ্শসমূহ মিলাওক। ওচৰৰ ঠিকনা আনুমানিক হ’ব পাৰে। তীব্ৰতা অনুমান কৰা নহয়।",
+  "Source details": "উৎসৰ বিৱৰণ",
+  "Replace existing values with available suggestions": "বৰ্তমানৰ মানসমূহ উপলব্ধ পৰামৰ্শৰে সলনি কৰক",
+  "Apply location suggestions": "স্থানৰ পৰামৰ্শ প্ৰয়োগ কৰক",
+  "Empty fields are filled by default. Unavailable values stay unchanged. Review and save the form when ready.": "সাধাৰণতে খালী ক্ষেত্ৰবোৰ পূৰণ কৰা হয়। অনুপলব্ধ মান সলনি নহয়। পৰীক্ষা কৰি প্ৰপত্ৰ সংৰক্ষণ কৰক।"
 }

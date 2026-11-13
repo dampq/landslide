@@ -454,5 +454,12 @@
   "Selected map position": "Selected map position",
   "Use selected saved location": "Use selected saved location",
   "Use selected coordinates": "Use selected coordinates",
-  "Cancel map selection": "Cancel map selection"
+  "Cancel map selection": "Cancel map selection",
+  "Look up place details using these coordinates. This sends the coordinates to OpenStreetMap Nominatim. Terrain lookup uses local prepared data.": "Look up place details using these coordinates. This sends the coordinates to OpenStreetMap Nominatim. Terrain lookup uses local prepared data.",
+  "Look up location details": "Look up location details",
+  "Review suggestions against the map. Nearby mapped addresses may be approximate. Severity is not inferred.": "Review suggestions against the map. Nearby mapped addresses may be approximate. Severity is not inferred.",
+  "Source details": "Source details",
+  "Replace existing values with available suggestions": "Replace existing values with available suggestions",
+  "Apply location suggestions": "Apply location suggestions",
+  "Empty fields are filled by default. Unavailable values stay unchanged. Review and save the form when ready.": "Empty fields are filled by default. Unavailable values stay unchanged. Review and save the form when ready."
 }

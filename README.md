@@ -153,4 +153,4 @@ New accounts require a name, valid email and a **12–128 character password**. 
 
 The client confirms the authenticated session before opening the dashboard. If an embedded browser or cookie settings block the session cookie, it displays a specific message; open the forwarded website in a normal browser tab and allow that site's cookies. Requests time out rather than leaving the submit button busy indefinitely. Backend password creation policy, HttpOnly/SameSite cookie protection and exact trusted-origin checks remain enforced.
 
-Location-entry forms support confirmed map selection alongside typed coordinates. Saved-record dropdowns offer marker selection without creating or guessing associations; see [map pickers](docs/MAP_PICKERS.md).
+Location-entry forms support confirmed map selection alongside typed coordinates. Saved-record dropdowns offer marker selection without creating or guessing associations; see [map pickers](docs/MAP_PICKERS.md). Monitoring locations also support reviewed [place and terrain suggestions](docs/LOCATION_DETAILS.md) from the chosen coordinates.

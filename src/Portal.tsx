@@ -1,6 +1,7 @@
 import RequestError from "./components/RequestError";
 import IncidentResponse from "./components/IncidentResponse";
 import LocationPicker from "./components/LocationPicker";
+import LocationDetailsLookup from "./components/LocationDetailsLookup";
 import CoordinateAssessment, {
   AssessmentPicker,
 } from "./components/CoordinateAssessment";
@@ -872,6 +873,44 @@ function RecordForm({
     lat: String(editing?.lat ?? ""),
     lng: String(editing?.lng ?? ""),
   });
+  const [details, setDetails] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      ["name", "district", "state", "slope"].map((key) => [
+        key,
+        String(editing?.[key] ?? ""),
+      ]),
+    ),
+  );
+  const [detailSources, setDetailSources] = useState<Record<string, any>>(
+    editing?.locationDetailsProvenance || {},
+  );
+  function changeDetail(key: string, value: string) {
+    setDetails((previous) => ({ ...previous, [key]: value }));
+    setDetailSources((previous) => {
+      const next = { ...previous };
+      delete next[key];
+      return next;
+    });
+  }
+  function changeCoords(next: { lat: string; lng: string }) {
+    if (
+      Number(next.lat) !== Number(coords.lat) ||
+      Number(next.lng) !== Number(coords.lng)
+    ) {
+      setDetails((previous) =>
+        Object.fromEntries(
+          Object.entries(previous).map(([key, value]) => [
+            key,
+            detailSources[key] && String(detailSources[key].value) === value
+              ? ""
+              : value,
+          ]),
+        ),
+      );
+      setDetailSources({});
+    }
+    setCoords(next);
+  }
   const [locationId, setLocationId] = useState(editing?.locationId || "");
   const hasCoordinates =
     fieldDefs[kind].some((f) => f.key === "lat") &&
@@ -883,6 +922,7 @@ function RecordForm({
     const values = Object.fromEntries(new FormData(form));
     await job.run(async () => {
       const data: any = { ...values, simulated };
+      if (kind === "locations") data.locationDetailsProvenance = detailSources;
       for (const f of fieldDefs[kind])
         if (f.type === "number") {
           if (values[f.key] === "") delete data[f.key];
@@ -896,6 +936,8 @@ function RecordForm({
         form.reset();
         setCoords({ lat: "", lng: "" });
         setLocationId("");
+        setDetails({ name: "", district: "", state: "", slope: "" });
+        setDetailSources({});
       }
     });
   }
@@ -927,7 +969,9 @@ function RecordForm({
                 maxLength={2000}
                 required={f.required}
                 defaultValue={
-                  f.key === "lat" || f.key === "lng"
+                  f.key === "lat" ||
+                  f.key === "lng" ||
+                  (kind === "locations" && f.key in details)
                     ? undefined
                     : (editing?.[f.key] ?? "")
                 }
@@ -936,14 +980,18 @@ function RecordForm({
                     ? coords.lat
                     : f.key === "lng"
                       ? coords.lng
-                      : undefined
+                      : kind === "locations" && f.key in details
+                        ? details[f.key]
+                        : undefined
                 }
                 onChange={
                   f.key === "lat"
-                    ? (e) => setCoords({ ...coords, lat: e.target.value })
+                    ? (e) => changeCoords({ ...coords, lat: e.target.value })
                     : f.key === "lng"
-                      ? (e) => setCoords({ ...coords, lng: e.target.value })
-                      : undefined
+                      ? (e) => changeCoords({ ...coords, lng: e.target.value })
+                      : kind === "locations" && f.key in details
+                        ? (e) => changeDetail(f.key, e.target.value)
+                        : undefined
                 }
               />
             )}
@@ -954,7 +1002,33 @@ function RecordForm({
             <LocationPicker
               value={coords}
               disabled={job.busy}
-              onChange={(lat, lng) => setCoords({ lat, lng })}
+              onChange={(lat, lng) => changeCoords({ lat, lng })}
+            />
+          </div>
+        )}
+        {kind === "locations" && (
+          <div className="md:col-span-2">
+            <LocationDetailsLookup
+              key={`${coords.lat}:${coords.lng}`}
+              lat={coords.lat}
+              lng={coords.lng}
+              onApply={(result, replace) => {
+                const next = { ...details },
+                  sources = { ...detailSources };
+                for (const [key, value] of Object.entries(result.fields)) {
+                  if (!(key in next) || (!replace && next[key].trim() !== ""))
+                    continue;
+                  next[key] = String(value);
+                  sources[key] = {
+                    value,
+                    lat: result.lat,
+                    lng: result.lng,
+                    ...result.provenance[key],
+                  };
+                }
+                setDetails(next);
+                setDetailSources(sources);
+              }}
             />
           </div>
         )}
@@ -1115,6 +1189,25 @@ function RecordList({
                 {t("GPS")} {r.lat}, {r.lng}
               </p>
             )}
+            {kind === "locations" &&
+              r.locationDetailsProvenance &&
+              Object.keys(r.locationDetailsProvenance).length > 0 && (
+                <details className="my-2 text-sm">
+                  <summary>{t("Source details")}</summary>
+                  {Object.entries(r.locationDetailsProvenance).map(
+                    ([key, info]: [string, any]) => (
+                      <p key={key}>
+                        {t(recordLabels[key] || key)}
+                        {": "}
+                        {info.source}
+                      </p>
+                    ),
+                  )}
+                  <pre className="overflow-auto text-xs">
+                    {JSON.stringify(r.locationDetailsProvenance, null, 2)}
+                  </pre>
+                </details>
+              )}
             <Sample row={r} />
             <p className="mt-2 text-xs text-slate-400">{time(r.updatedAt)}</p>
             {canEdit && kind !== "teams" && (

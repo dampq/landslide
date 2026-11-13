@@ -45,7 +45,7 @@ from .security import (
 )
 from .prediction import predict, model_status as prediction_model_status, supplied_example, evaluation
 from .weather_data import sample_weather
-from . import environmental
+from . import environmental, location_details
 
 ORIGINS = os.environ.get(
     "APP_ORIGINS",
@@ -212,6 +212,12 @@ class IncidentDispatchInput(BaseModel):
     correctionReason: str = Field(default="", max_length=2000)
     mode: Literal["verify-and-assign", "urgent-unverified"] = "verify-and-assign"
     urgentReason: str = Field(default="", max_length=2000)
+
+
+class LocationDetailsInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    lat: float = Field(strict=True, ge=-90, le=90, allow_inf_nan=False)
+    lng: float = Field(strict=True, ge=-180, le=180, allow_inf_nan=False)
 
 
 class CoordinateAssessmentInput(BaseModel):
@@ -991,6 +997,11 @@ def refresh_weather(id: str, account=Depends(official), db=Depends(db_session)):
         r.updated = now()
     audit(db, account, "weather:refresh", id)
     return {**result, "available": True, "stale": False, "updatedAt": r.updated}
+
+
+@app.post("/api/location/details")
+def lookup_location(body: LocationDetailsInput, account=Depends(official), db=Depends(db_session)):
+    return location_details.lookup(body.lat, body.lng, db)
 
 
 @app.post("/api/assessment/features", status_code=201)

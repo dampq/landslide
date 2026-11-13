@@ -454,5 +454,12 @@
   "Selected map position": "मानचित्र पर चुना स्थान",
   "Use selected saved location": "चुना सहेजा स्थान उपयोग करें",
   "Use selected coordinates": "चुने निर्देशांक उपयोग करें",
-  "Cancel map selection": "मानचित्र चयन रद्द करें"
+  "Cancel map selection": "मानचित्र चयन रद्द करें",
+  "Look up place details using these coordinates. This sends the coordinates to OpenStreetMap Nominatim. Terrain lookup uses local prepared data.": "इन निर्देशांकों से स्थान का विवरण खोजें। निर्देशांक OpenStreetMap Nominatim को भेजे जाते हैं। भूभाग की जानकारी स्थानीय तैयार डेटा से ली जाती है।",
+  "Look up location details": "स्थान का विवरण खोजें",
+  "Review suggestions against the map. Nearby mapped addresses may be approximate. Severity is not inferred.": "नक्शे से सुझावों की जाँच करें। पास के पते अनुमानित हो सकते हैं। गंभीरता का अनुमान नहीं लगाया जाता।",
+  "Source details": "स्रोत का विवरण",
+  "Replace existing values with available suggestions": "मौजूदा मानों को उपलब्ध सुझावों से बदलें",
+  "Apply location suggestions": "स्थान संबंधी सुझाव लागू करें",
+  "Empty fields are filled by default. Unavailable values stay unchanged. Review and save the form when ready.": "डिफ़ॉल्ट रूप से खाली खाने भरे जाते हैं। अनुपलब्ध मान नहीं बदलते। जाँच के बाद फ़ॉर्म सहेजें।"
 }

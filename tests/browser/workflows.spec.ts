@@ -1661,3 +1661,111 @@ test("shared picker updates assessment coordinates and records response correcti
     "Reporter confirmed the selected access point",
   );
 });
+
+test("location details suggestions preserve manual entries and clear derived fields after coordinate changes", async ({
+  page,
+}) => {
+  await login(page, "admin");
+  await page.goto("/monitoring");
+  await page.getByRole("button", { name: "Create", exact: true }).click();
+  const form = page
+    .locator("form")
+    .filter({ has: page.getByLabel("District", { exact: true }) });
+  await form.getByLabel("Name", { exact: true }).fill("Official chosen name");
+  await form.getByLabel("Latitude", { exact: true }).fill("26.19");
+  await form.getByLabel("Longitude", { exact: true }).fill("91.71");
+  let calls = 0;
+  await page.route("**/api/location/details", async (route) => {
+    calls++;
+    expect(route.request().postDataJSON()).toEqual({ lat: 26.19, lng: 91.71 });
+    await route.fulfill({
+      json: {
+        lat: 26.19,
+        lng: 91.71,
+        fields: {
+          name: "Mapped village",
+          district: "Mapped district",
+          state: "Assam",
+          slope: 12.5,
+        },
+        provenance: {
+          name: { source: "Mock provider" },
+          district: { source: "Mock provider" },
+          state: { source: "Test boundary" },
+          slope: { source: "Test terrain", unit: "degrees" },
+        },
+        unavailable: {},
+      },
+    });
+  });
+  await form
+    .getByRole("button", { name: "Look up location details", exact: true })
+    .click();
+  await expect(form.getByText("Mapped village", { exact: true })).toBeVisible();
+  await expect(form.getByLabel("District", { exact: true })).toHaveValue("");
+  await form
+    .getByRole("button", { name: "Apply location suggestions", exact: true })
+    .click();
+  await expect(form.getByLabel("Name", { exact: true })).toHaveValue(
+    "Official chosen name",
+  );
+  await expect(form.getByLabel("District", { exact: true })).toHaveValue(
+    "Mapped district",
+  );
+  await expect(form.getByLabel("Slope (degrees)", { exact: true })).toHaveValue(
+    "12.5",
+  );
+  await expect(form.getByLabel("Severity", { exact: true })).toHaveValue("Low");
+  await form
+    .getByLabel("Replace existing values with available suggestions")
+    .check();
+  await form
+    .getByRole("button", { name: "Apply location suggestions", exact: true })
+    .click();
+  await expect(form.getByLabel("Name", { exact: true })).toHaveValue(
+    "Mapped village",
+  );
+  await form
+    .getByLabel("District", { exact: true })
+    .fill("Official corrected district");
+  await form.getByLabel("Longitude", { exact: true }).fill("92");
+  await expect(form.getByLabel("Name", { exact: true })).toHaveValue("");
+  await expect(form.getByLabel("State", { exact: true })).toHaveValue("");
+  await expect(form.getByLabel("Slope (degrees)", { exact: true })).toHaveValue(
+    "",
+  );
+  await expect(form.getByLabel("District", { exact: true })).toHaveValue(
+    "Official corrected district",
+  );
+  expect(calls).toBe(1);
+  await form.getByLabel("Longitude", { exact: true }).fill("91.71");
+  await form
+    .getByRole("button", { name: "Look up location details", exact: true })
+    .click();
+  await form
+    .getByRole("button", { name: "Apply location suggestions", exact: true })
+    .click();
+  await form
+    .getByLabel("Name", { exact: true })
+    .fill("Location lookup browser test");
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/records/locations") &&
+      response.request().method() === "POST",
+  );
+  await form.getByRole("button", { name: "Save", exact: true }).click();
+  const record = await (await saved).json();
+  expect(record.locationDetailsProvenance.slope.value).toBe(12.5);
+  expect(record.locationDetailsProvenance.name).toBeUndefined();
+  expect(record.district).toBe("Official corrected district");
+  const card = page
+    .locator(".rounded-2xl")
+    .filter({
+      has: page.getByText("Location lookup browser test", { exact: true }),
+    })
+    .last();
+  await card.getByText("Source details", { exact: true }).click();
+  await expect(
+    card.getByText("Slope (degrees): Test terrain", { exact: true }),
+  ).toBeVisible();
+});
