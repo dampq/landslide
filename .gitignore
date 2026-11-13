@@ -15,3 +15,8 @@ backend/models/
 
 .cache/
 backend/.venv-backup-*/
+
+# Private, large source rasters remain local.
+model-handoff/frnd_raster_data.zip
+Ashtaraksha_Datasets/
+Ashtaraksha_Model/

@@ -1,0 +1,10 @@
+
+> ashtaraksha@1.0.0 check:i18n
+> node scripts/check-i18n.mjs
+
+Translation checks passed: 445 interface keys, 3 languages, no untranslated JSX copy or missing placeholders.
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

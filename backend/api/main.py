@@ -45,6 +45,7 @@ from .security import (
 )
 from .prediction import predict, model_status as prediction_model_status, supplied_example, evaluation
 from .weather_data import sample_weather
+from . import environmental
 
 ORIGINS = os.environ.get(
     "APP_ORIGINS",
@@ -211,6 +212,18 @@ class IncidentDispatchInput(BaseModel):
     correctionReason: str = Field(default="", max_length=2000)
     mode: Literal["verify-and-assign", "urgent-unverified"] = "verify-and-assign"
     urgentReason: str = Field(default="", max_length=2000)
+
+
+class CoordinateAssessmentInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    lat: float = Field(strict=True, ge=-90, le=90, allow_inf_nan=False)
+    lng: float = Field(strict=True, ge=-180, le=180, allow_inf_nan=False)
+    modelVersion: Literal["1", "2"] = "1"
+
+
+class RunCoordinateAssessmentInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    extractionId: str = Field(min_length=1, max_length=100)
 
 
 class PredictionInput(BaseModel):
@@ -978,6 +991,34 @@ def refresh_weather(id: str, account=Depends(official), db=Depends(db_session)):
         r.updated = now()
     audit(db, account, "weather:refresh", id)
     return {**result, "available": True, "stale": False, "updatedAt": r.updated}
+
+
+@app.post("/api/assessment/features", status_code=201)
+def extract_assessment(body: CoordinateAssessmentInput, account=Depends(official), db=Depends(db_session)):
+    data = environmental.extract(body.lat, body.lng, body.modelVersion)
+    record = add_record(db, "assessment-inputs", {**data, "source": "Local versioned environmental raster sampling"}, account.id)
+    audit(db, account, "assessment:extract", record.id)
+    return serial(record)
+
+
+@app.post("/api/assessment/run", status_code=201)
+def run_assessment(body: RunCoordinateAssessmentInput, account=Depends(official), db=Depends(db_session)):
+    record = db.scalar(select(Record).where(Record.id == body.extractionId, Record.kind == "assessment-inputs").with_for_update())
+    if not record or (record.owner_id != account.id and account.role != "admin"):
+        raise HTTPException(404, "Extraction not found")
+    existing = db.scalar(select(Record).where(Record.kind == "predictions", Record.data["extractionId"].astext == record.id))
+    if existing:
+        return serial(existing)
+    if now() - record.created > 3600:
+        raise HTTPException(409, "Extraction expired; extract and inspect the inputs again")
+    if not record.data["canScore"]:
+        raise HTTPException(422, "Required model inputs are unavailable or invalid; no score was produced")
+    environmental.verify_snapshot(record.data)
+    result = predict(record.data["inputs"], record.data["modelVersion"])
+    prediction_record = add_record(db, "predictions", {**record.data, **result, "extractionId": record.id,
+        "extractedAt": record.created, "assessmentMode": "coordinate-extraction", "simulated": False}, account.id)
+    audit(db, account, "assessment:score", prediction_record.id)
+    return serial(prediction_record)
 
 
 @app.get("/api/model")

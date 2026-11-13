@@ -44,6 +44,10 @@ The previous demo-only frontend and SQLite/Waitress backend have been replaced. 
 
 For repeatable Linux/cloud setup, `bash scripts/setup.sh --demo` installs dependencies, starts PostgreSQL, applies the migration and seeds labelled samples. Omit `--demo` to preserve an empty dataset.
 
+## Automatic environmental assessment
+
+If `model-handoff/frnd_raster_data.zip` is present locally, run `npm run prepare:rasters` after setup. It safely prepares private local data and verifies both real-raster reference examples before enabling coordinate extraction. See [automatic assessment](docs/AUTOMATIC_ASSESSMENT.md). Real-data verification must run on the machine holding the archive; code/synthetic tests alone do not establish readiness. Both models and the clean working database are preserved.
+
 ## Use the platform
 
 1. A citizen registers, captures GPS (browser permission required), enters an incident, attaches photographs or MP4 video, and submits it.

@@ -1,5 +1,7 @@
 # Location-based inference: feature-to-source contract
 
+**Current update:** the extraction handoff and matching raster file listing have now been supplied. The initial feasibility assessment below is preserved as history. The implemented local extraction workflow, resolved training definitions, SOC interpretation caveat and real-data acceptance gate are documented in [AUTOMATIC_ASSESSMENT.md](AUTOMATIC_ASSESSMENT.md). Real-raster verification must run in the Codespace hosting the datasets.
+
 Prepared 13 November 2026 **before implementing extraction**. Authoritative inputs are the supplied feature lists, metadata, helpers and fitted pipelines in `model-handoff/Ashtaraksha_Teammate_Handoff.zip`. V1 remains default; V2 is experimental. Training, replacement and changes to either estimator/pipeline belong to the model team and are outside this website task.
 
 ## Evidence and access status

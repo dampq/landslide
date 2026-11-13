@@ -12,7 +12,8 @@
     "format": "prettier --write src scripts tests/browser docs README.md index.html vite.config.ts playwright.config.ts compose.yaml",
     "check:i18n": "node scripts/check-i18n.mjs",
     "test:config": "node --test tests/codespaces.test.mjs",
-    "dev:clean": "backend/.venv/bin/python scripts/start-clean.py"
+    "dev:clean": "backend/.venv/bin/python scripts/start-clean.py",
+    "prepare:rasters": "backend/.venv/bin/python scripts/prepare-rasters.py"
   },
   "dependencies": {
     "@vitejs/plugin-react": "6.1.1",
