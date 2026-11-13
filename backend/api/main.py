@@ -43,7 +43,7 @@ from .security import (
     token_hash,
     audit,
 )
-from .prediction import FEATURES, predict, load_model
+from .prediction import predict, model_status as prediction_model_status, supplied_example, evaluation
 from .weather_data import sample_weather
 
 ORIGINS = os.environ.get(
@@ -200,9 +200,11 @@ class Verification(BaseModel):
 
 
 class PredictionInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     locationId: str
     observedAt: float = Field(allow_inf_nan=False)
-    inputs: dict[str, float]
+    modelVersion: str = "1"
+    inputs: dict[str, object]
     source: str = Field(min_length=3, max_length=200)
 
 
@@ -554,6 +556,9 @@ def verify_report(
         "status": body.status,
         "verificationNote": body.note,
         "verifiedBy": account.name,
+        "reviewHistory": [*r.data.get("reviewHistory", []),
+                          {"status": body.status, "note": body.note,
+                           "reviewerId": account.id, "reviewer": account.name, "at": now()}],
     }
     r.updated = now()
     audit(db, account, "report:" + body.status, id)
@@ -930,22 +935,26 @@ def refresh_weather(id: str, account=Depends(official), db=Depends(db_session)):
 
 
 @app.get("/api/model")
-def model_status(account=Depends(user)):
-    try:
-        _, metadata = load_model()
-        return {
-            "available": True,
-            "features": FEATURES,
-            "version": metadata["version"],
-            "training": "External model team only",
-        }
-    except HTTPException as exc:
-        return {
-            "available": False,
-            "features": FEATURES,
-            "message": exc.detail,
-            "training": "External model team only",
-        }
+def model_status(version: str = "1", account=Depends(user)):
+    return prediction_model_status(version)
+
+
+@app.get("/api/model/comparison")
+def model_comparison(account=Depends(user)):
+    return {"versions": [{"version": v, "evaluation": evaluation(v)} for v in ["1", "2"]]}
+
+
+@app.get("/api/model/examples/{version}")
+def model_example(version: str, account=Depends(official)):
+    return {**supplied_example(version), "modelVersion": version, "simulated": True,
+            "features": prediction_model_status(version)["features"]}
+
+
+@app.post("/api/model/examples/{version}/run")
+def run_model_example(version: str, account=Depends(official)):
+    example = supplied_example(version)
+    return {**example, **predict(example["inputs"], version), "simulated": True,
+            "assessmentMode": "supplied-example", "locationId": None}
 
 
 @app.post("/api/predictions", status_code=201)
@@ -953,9 +962,9 @@ def prediction(
     body: PredictionInput, account=Depends(official), db=Depends(db_session)
 ):
     get_record(db, body.locationId, "locations")
-    if not now() - 86400 <= body.observedAt <= now() + 300:
-        raise HTTPException(422, "Current inputs must be within the past 24 hours")
-    result = predict(body.inputs)
+    if not 0 <= body.observedAt <= now() + 300:
+        raise HTTPException(422, "Feature collection time must not be in the future")
+    result = predict(body.inputs, body.modelVersion)
     r = add_record(
         db,
         "predictions",
@@ -1114,8 +1123,30 @@ def priorities(account=Depends(official), db=Depends(db_session)):
     return {"items": sorted(items, key=lambda v: v["priorityScore"], reverse=True)}
 
 
+@app.get("/api/response/reports/{id}")
+def planning_report(id: str, account=Depends(official), db=Depends(db_session)):
+    report = get_record(db, id, "reports")
+    if report.data.get("status") != "Verified":
+        raise HTTPException(409, "Response planning requires a verified report")
+    return serial(report)
+
+
 @app.post("/api/deployments", status_code=201)
 def deploy(body: dict, account=Depends(official), db=Depends(db_session)):
+    incident = None
+    if body.get("reportId"):
+        report = db.scalar(select(Record).where(Record.id == body["reportId"], Record.kind == "reports").with_for_update())
+        if not report:
+            raise HTTPException(404, "Report not found")
+        if report.data.get("status") != "Verified":
+            raise HTTPException(409, "Response planning requires a verified report")
+        if body.get("confirmLocationAssociation") is not True:
+            raise HTTPException(422, "Confirm the monitoring location association")
+        incident = {"reportId": report.id, "reportCoordinates": {"lat": report.lat, "lng": report.lng},
+                    "reportDescription": report.data["description"],
+                    "reportReviewHistory": report.data.get("reviewHistory", []),
+                    "reportVerificationNote": report.data.get("verificationNote"),
+                    "associationConfirmedBy": account.id, "associationConfirmedAt": now()}
     team = db.scalar(
         select(Record)
         .where(Record.id == body.get("teamId"), Record.kind == "teams")
@@ -1138,11 +1169,16 @@ def deploy(body: dict, account=Depends(official), db=Depends(db_session)):
             "location": loc.data["name"],
             "status": "En Route",
             "notes": str(body.get("notes", ""))[:2000],
+            **(incident or {}),
             "source": "Official assignment",
             "simulated": bool(team.data.get("simulated") or loc.data.get("simulated")),
         },
         account.id,
     )
+    if incident:
+        report.data = {**report.data, "responseLocationId": loc.id}
+        report.updated = now()
+        audit(db, account, "report:response-association", report.id)
     audit(db, account, "deployment:create", r.id)
     return serial(r)
 
@@ -1281,7 +1317,7 @@ def update_user(id: str, body: dict, account=Depends(admin), db=Depends(db_sessi
 def system(account=Depends(admin), db=Depends(db_session)):
     return {
         "health": health(db),
-        "model": model_status(account),
+        "model": model_status(account=account),
         "notificationMode": "In-app only; no external SMS is sent",
         "audit": [
             {"actor": a.actor, "action": a.action, "target": a.target, "at": a.at}

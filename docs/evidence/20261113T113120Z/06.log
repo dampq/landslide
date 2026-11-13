@@ -1,0 +1,16 @@
+
+> ashtaraksha@1.0.0 test:config
+> node --test tests/codespaces.test.mjs
+
+✔ local development environment is preserved (1.292151ms)
+✔ Codespaces gets its exact trusted origin and HTTPS cookies (0.413974ms)
+✔ custom origins, forwarding domain and explicit cookie setting are preserved (0.120512ms)
+✔ invalid forwarded hostname is rejected (0.264179ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 59.517109

@@ -4,6 +4,10 @@ A responsive, web-based landslide monitoring and reporting platform for North Ea
 
 This is a student demonstration and decision-support project, not an operational disaster warning service. All seeded geographic, weather, population and sensor data is explicitly synthetic. No restricted government data, paid satellite service or physical sensor is required. The platform does **not** train or substitute a prediction model.
 
+## Run without demonstration data
+
+Use `npm run dev:clean` after dependency setup. It starts a separate unseeded local database and preserves the previous database as a backup. Register your account and add your own reports, monitoring locations and teams. See [clean startup](docs/CLEAN_START.md) for setup and role promotion. Rerunning retains your data. Do not use `--demo` or sample/simulator actions when checking real records.
+
 ## Quick start
 
 Requirements: Node.js 22.12+ (24 tested), Python 3.12, Docker with Compose, and ports 5433, 8000 and 5173 available. Commands below run from the repository root unless stated otherwise.
@@ -83,7 +87,7 @@ npm run test:e2e
 
 `createdb` is needed only once per database. Stop development servers before running browser tests: Playwright starts an isolated API database on port 8000 and the built frontend on 4173. Chromium is required; configure `CHROMIUM_PATH` if it is not `/usr/bin/chromium`. Alternatively install the official Playwright browser and adapt the executable setting. Test-account credentials exist only in the test database and test source.
 
-API tests cover authentication/permissions, CSRF origin checks, report privacy and review, concurrent retries, attachment validation/deduplication, OpenCV, partial sync, PostGIS queries, alert lifecycle and subscriptions, atomic deployment, missing-model and checksum behaviour, weather failures, simulation, imports, role-session revocation, CSV escaping and analytics. Browser tests exercise connected citizen/official/admin workflows, GPS/media, actual offline reload with attachment sync, map layers, mobile layout and language switching.
+API tests cover authentication/permissions, CSRF origin checks, report privacy and review, concurrent retries, attachment validation/deduplication, OpenCV, partial sync, PostGIS queries, alert lifecycle and subscriptions, atomic deployment, both supplied models, helper parity, imputation and checksum behaviour, weather failures, simulation, imports, role-session revocation, CSV escaping and analytics. Browser tests exercise connected citizen/official/admin workflows, GPS/media, actual offline reload with attachment sync, map layers, mobile layout and language switching.
 
 ## Configuration
 
@@ -137,7 +141,7 @@ cd backend
 
 The read-only command checks PostgreSQL/PostGIS and an actual Open-Meteo response, without printing credentials or changing records. It exits nonzero when the live provider cannot be verified; this does not disable labelled demonstrations. Tile authorization must be checked in the real browser, not inferred from a server-side probe.
 
-See [validation evidence](docs/VALIDATION.md) for the completed website acceptance tests and the precise remaining external handovers. The Random Forest model remains the separate team's responsibility.
+See [validation evidence](docs/VALIDATION.md) for the completed website acceptance tests and the precise remaining external handovers. Both supplied Random Forest versions are integrated: V1 is the default and V2 an experimental comparison. Their scores are relative presence-background scores, not calibrated probabilities or warnings. See the model integration guide for input sources and limitations.
 
 ### Registration and sign-in feedback
 

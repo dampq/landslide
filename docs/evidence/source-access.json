@@ -1,0 +1,23 @@
+{
+  "checked_on_utc": "2026-11-13",
+  "method": "HEAD",
+  "data_retrieved": false,
+  "results": [
+    {
+      "url": "https://esa-worldcover.org/en/data-access",
+      "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+    },
+    {
+      "url": "https://docs.isric.org/globaldata/soilgrids/SoilGrids_faqs.html",
+      "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+    },
+    {
+      "url": "https://www.worldclim.org/data/worldclim21.html",
+      "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+    },
+    {
+      "url": "https://geodata.ucdavis.edu/climate/worldclim/2_1/base/wc2.1_2.5m_bio.zip",
+      "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+    }
+  ]
+}

@@ -391,36 +391,95 @@ def test_atomic_deployment_and_transitions(actors):
     assert c.post("/api/deployments", json=payload).status_code == 201
 
 
-def test_model_absent_and_no_fake_predictions(actors, monkeypatch):
-    monkeypatch.delenv("RF_MODEL_PATH", raising=False)
-    assert actors["citizen"].get("/api/model").json()["available"] is False
-    payload = {
-        "locationId": "demo-location-0",
-        "observedAt": __import__("time").time(),
-        "source": "Test observations",
-        "inputs": {
-            "rainfall24h": 20,
-            "rainfall72h": 60,
-            "soilMoisture": 50,
-            "slope": 30,
-            "groundMovement": 1,
-            "historicalEvents": 2,
-        },
-    }
-    r = actors["official"].post("/api/predictions", json=payload)
-    assert r.status_code == 503 and "not been supplied" in r.json()["detail"]
+V1_FEATURES = dict(worldcover_class=10, clay_fraction=.199, sand_fraction=.367,
+                   soil_ph=5.5, soc_stock_t_ha=170.)
+V2_FEATURES = {**V1_FEATURES, "bio12_annual_precipitation_mm": 2500.,
+               "bio13_wettest_month_precip_mm": 500., "bio15_precipitation_seasonality_pct": 80.,
+               "bio16_wettest_quarter_precip_mm": 1200., "bio17_driest_quarter_precip_mm": 100.,
+               "elevation_m": 450., "slope_degrees": 18., "aspect_sin": .5, "aspect_cos": .866}
+
+
+def prediction_payload(version="1", inputs=None):
+    return {"locationId": "demo-location-0", "observedAt": 1600000000,
+            "source": "Documented environmental layer extraction", "modelVersion": version,
+            "inputs": inputs if inputs is not None else (V1_FEATURES if version == "1" else V2_FEATURES)}
+
+
+@pytest.mark.parametrize("version", ["1", "2"])
+def test_supplied_model_http_and_helper_parity(actors, version, tmp_path):
+    import importlib.util
+    from api import prediction
+    files = prediction.bundle(version)
+    for name, raw in files.items():
+        (tmp_path / name).write_bytes(raw)
+    helper = "predict" if version == "1" else "predict_v2"
+    spec = importlib.util.spec_from_file_location("handoff_" + version, tmp_path / (helper + ".py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    payload = prediction_payload(version)
+    expected = module.predict_relative_score(payload["inputs"])["experimental_presence_background_score"]
+    if version == "1":
+        assert expected == pytest.approx(0.7506392613449581, abs=1e-14)
+    c = actors["official"]
+    status = c.get("/api/model", params={"version": version}).json()
+    assert status["available"] and len(status["features"]) == (5 if version == "1" else 14)
+    assert c.get("/health").json()["status"] == "ok"
+    assert actors["admin"].get("/api/admin/system").json()["model"]["available"]
+    # Key order must not affect inference.
+    payload["inputs"] = dict(reversed(list(payload["inputs"].items())))
+    r = c.post("/api/predictions", json=payload)
+    assert r.status_code == 201, r.text
+    result = r.json()
+    assert result["experimental_presence_background_score"] == pytest.approx(expected, abs=1e-14)
+    assert result["modelVersion"] == version and not result["operationallyValidated"]
+    assert result["source"] == payload["source"]
+    assert "probability" not in result and "label" not in result
+    assert "not a calibrated probability" in result["interpretation"]
+    assert c.get("/api/records/predictions").json()["total"] == 1
+    assert actors["citizen"].post("/api/predictions", json=payload).status_code == 403
+    if version == "2":
+        payload["inputs"] = {k: v if k == "worldcover_class" else None for k, v in V2_FEATURES.items()}
+        result = c.post("/api/predictions", json=payload).json()
+        assert len(result["imputed_fields"]) == 13
+        assert result["experimental_presence_background_score"] == pytest.approx(
+            module.predict_relative_score(payload["inputs"])["experimental_presence_background_score"])
+
+
+@pytest.mark.parametrize("version", ["1", "2"])
+def test_model_invalid_inputs_never_persist(actors, version):
+    base = V1_FEATURES if version == "1" else V2_FEATURES
+    invalid = [dict(base, worldcover_class=x) for x in [True, 20, "10", 10.0, None]]
+    invalid += [dict(base, clay_fraction=x) for x in [True, "0.2", -1, 2, [], {}]]
+    invalid += [{k: v for k, v in base.items() if k != "soil_ph"}, dict(base, extra=1)]
+    if version == "1":
+        invalid += [dict(base, soil_ph=None), dict(base, soil_ph=0)]
+    for inputs in invalid:
+        r = actors["official"].post("/api/predictions", json=prediction_payload(version, inputs))
+        assert r.status_code == 422, r.text
     assert actors["official"].get("/api/records/predictions").json()["total"] == 0
-    payload["inputs"]["slope"] = 100
-    assert actors["official"].post("/api/predictions", json=payload).status_code == 422
 
 
-def test_model_checksum_enforced(actors, monkeypatch, tmp_path):
-    path = tmp_path / "model.skops"
-    path.write_bytes(b"not a model")
-    monkeypatch.setenv("RF_MODEL_PATH", str(path))
-    monkeypatch.setenv("RF_MODEL_SHA256", "0" * 64)
-    result = actors["official"].get("/api/model").json()
-    assert result["available"] is False and "checksum" in result["message"].lower()
+def test_model_missing_and_checksum_fail_closed(actors, monkeypatch, tmp_path):
+    import zipfile
+    import joblib
+    from api import prediction
+    original = prediction.ARCHIVE
+    monkeypatch.setattr(prediction, "ARCHIVE", tmp_path / "missing.zip")
+    assert not actors["official"].get("/api/model").json()["available"]
+    assert actors["official"].post("/api/predictions", json=prediction_payload()).status_code == 503
+    tampered = tmp_path / "tampered.zip"
+    with zipfile.ZipFile(original) as src, zipfile.ZipFile(tampered, "w") as dst:
+        for name in src.namelist():
+            raw = src.read(name)
+            dst.writestr(name, raw + b"tampered" if name.endswith(".joblib") else raw)
+    monkeypatch.setattr(prediction, "ARCHIVE", tampered)
+    monkeypatch.setattr(joblib, "load", lambda *a, **kw: pytest.fail("Unverified model deserialized"))
+    for version in ["1", "2"]:
+        status = actors["official"].get("/api/model", params={"version": version}).json()
+        assert not status["available"] and "checksum" in status["message"]
+        assert actors["official"].post("/api/predictions", json=prediction_payload(version)).status_code == 503
+    assert actors["official"].get("/api/records/predictions").json()["total"] == 0
+    assert actors["official"].get("/api/model?version=3").status_code == 422
 
 
 def test_weather_failure_preserves_cache(actors, monkeypatch):
@@ -767,3 +826,54 @@ def test_registration_policy_does_not_silently_block_short_login_attempts():
         == 200
     )
     assert c.get("/api/auth/me").json()["role"] == "citizen"
+
+
+def test_supplied_examples_separate_and_evaluation_context(actors):
+    c = actors['official']
+    before = c.get('/api/records/predictions').json()['total']
+    for version in ['1', '2']:
+        sample = c.get(f'/api/model/examples/{version}').json()
+        assert sample['simulated'] and len(sample['inputs']) == (5 if version == '1' else 14)
+        result = c.post(f'/api/model/examples/{version}/run').json()
+        assert result['simulated'] and result['locationId'] is None
+        assert result['assessmentMode'] == 'supplied-example'
+        if version == '1':
+            assert result['experimental_presence_background_score'] == pytest.approx(sample['referenceScore'], abs=1e-14)
+        else:
+            assert sample['referenceScore'] is None
+        assert actors['citizen'].post(f'/api/model/examples/{version}/run').status_code == 403
+    assert c.get('/api/records/predictions').json()['total'] == before
+    comparison = c.get('/api/model/comparison').json()['versions']
+    assert len(comparison) == 2
+    for v in comparison:
+        e = v['evaluation']
+        assert e['evaluatedRows'] == 358 and e['threshold'] == .5
+        assert e['sampleEvents'] == 179 and e['sampleBackground'] == 179
+        assert e['independentTestSize'] is None and e['method']
+        assert e['precision'] is not None and e['recall'] is not None and e['f1'] is not None
+
+
+def test_verified_incident_to_completed_response_preserves_context(actors):
+    c = actors['official']
+    incident = report(actors['citizen'])
+    rid = incident['id']
+    payload = dict(teamId='demo-team-0', locationId='demo-location-0', reportId=rid)
+    assert c.get(f'/api/response/reports/{rid}').status_code == 409
+    assert c.post('/api/deployments', json={**payload, 'confirmLocationAssociation': True}).status_code == 409
+    review = c.patch(f'/api/reports/{rid}/verify', json={'status':'Verified', 'note':'Confirmed incident for response planning'}).json()
+    planned = c.get(f'/api/response/reports/{rid}').json()
+    assert planned['id'] == rid and planned['lat'] == incident['lat']
+    assert planned['reviewHistory'] == review['reviewHistory']
+    assert c.post('/api/deployments', json=payload).status_code == 422
+    assert actors['citizen'].get(f'/api/response/reports/{rid}').status_code == 403
+    deployed = c.post('/api/deployments', json={**payload, 'confirmLocationAssociation':True})
+    assert deployed.status_code == 201, deployed.text
+    data = deployed.json()
+    assert data['reportId'] == rid and data['reportCoordinates'] == {'lat':incident['lat'],'lng':incident['lng']}
+    assert data['reportReviewHistory'] == review['reviewHistory']
+    for status in ['On Site','Completed']:
+        result = c.post(f"/api/deployments/{data['id']}/status", json={'status':status})
+        assert result.status_code == 200 and result.json()['reportId'] == rid
+    audit = actors['admin'].get('/api/admin/system').json()['audit']
+    assert any(a['action']=='report:response-association' and a['target']==rid for a in audit)
+    assert any(a['action']=='deployment:Completed' and a['target']==data['id'] for a in audit)

@@ -24,7 +24,7 @@ This implementation targets a complete **student-level demonstration**. It delib
 | Offline PWA                                         | Versioned app shell and public-domain reference map cache, author-scoped report/file queue, offline reload and retry-safe reconnect sync                          |
 | Analytics / downloads                               | Recharts summaries of stored data, CSV exports with provenance and formula neutralisation                                                                         |
 | Administration                                      | User roles/activation, imports, audit trail and database/model status                                                                                             |
-| Random Forest boundary                              | Inference-only API, explicit units/order, local trusted skops artifact, checksum/type checks, HTTP 503 before supplied; no training or pretrained replacement     |
+| Random Forest boundary                              | Inference-only API, explicit units/order, both supplied model/pipeline pairs, checksum/schema checks, V1 default/V2 experimental; no training or replacement     |
 | Responsive web                                      | Desktop/sidebar and mobile menu layouts, browser-tested at 390px; no Android/iOS app required                                                                     |
 
 ## Demonstration walkthrough
@@ -39,11 +39,11 @@ This implementation targets a complete **student-level demonstration**. It delib
 8. Disconnect the browser after loading the production PWA. Submit a report with an image, reload, inspect the queue, reconnect and verify one stored report with its media.
 9. Switch Hindi and Assamese; inspect mobile navigation and reporting controls.
 10. Download CSV, inspect source/simulated columns, import the sample JSON and inspect the audit trail.
-11. Open the model portal. Until the external model arrives, verify the explicit unavailable state. Do not present any sample risk level as an ML result.
+11. Open the model portal. Select V1 or V2 and supply the documented environmental features; inspect the experimental relative score and imputed fields. Do not present any sample risk level as an ML result.
 
 ## Separate handovers / honest limitations
 
-The separately developed Random Forest artifact and its independent evaluation are not supplied, so actual model inference remains to be validated on delivery. Real public datasets are not fabricated or represented as already downloaded: lawful imports, attribution and domain review are required when replacing samples. Live weather and online street tiles require network access; explicit sample weather and a bundled geographic reference remain available without those services. External satellite exploration and advanced classification remain optional. This student platform does not claim operational government warning capability, calibrated predictions or a proven population-at-risk footprint.
+Both separately supplied Random Forest versions are integrated for inference with checksum verification and their original fitted pipelines. V1 is default; V2 is experimental and performed worse in matched spatial evaluation. Neither has independent validation or calibrated probability outputs. Real public datasets are not fabricated or represented as already downloaded: lawful imports, attribution and domain review are required when replacing samples. Live weather and online street tiles require network access; explicit sample weather and a bundled geographic reference remain available without those services. External satellite exploration and advanced classification remain optional. This student platform does not claim operational government warning capability, calibrated predictions or a proven population-at-risk footprint.
 
 ## Completed website acceptance
 

@@ -200,7 +200,7 @@ test("official sensor simulation, weather sample, spatial layers and warning pub
   await expect(page.getByText("Published", { exact: true })).toBeVisible();
 });
 
-test("mobile layout, Hindi and Assamese navigation, model unavailable state", async ({
+test("mobile layout, Hindi and Assamese navigation, model version selection", async ({
   browser,
 }) => {
   const context = await browser.newContext({
@@ -218,8 +218,8 @@ test("mobile layout, Hindi and Assamese navigation, model unavailable state", as
   await page.getByRole("button", { name: "मेनू", exact: true }).click();
   await page.getByRole("link", { name: "मॉडल एकीकरण", exact: true }).click();
   await expect(
-    page.getByText("मॉडल उपलब्ध नहीं है", { exact: true }),
-  ).toBeVisible();
+    page.getByRole("option", { name: "V1 — डिफ़ॉल्ट", exact: true }),
+  ).toBeAttached();
   await page.getByLabel("भाषा", { exact: true }).selectOption("as");
   await expect(
     page.getByRole("heading", { name: "মডেল সংযোগ", exact: true }),
@@ -920,5 +920,156 @@ test("successful registration remains clearly confirmed when automatic sign-in f
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Dashboard", exact: true }),
+  ).toBeVisible();
+});
+
+test("supplied V1 and V2 scores use their own feature forms and preserve imputation", async ({
+  page,
+}) => {
+  await login(page, "official");
+  await page
+    .getByRole("link", { name: "Model integration", exact: true })
+    .click();
+  await expect(page.getByLabel("Model version", { exact: true })).toHaveValue(
+    "1",
+  );
+  const location = page.getByLabel("Location", { exact: true });
+  await location.selectOption({ index: 1 });
+  for (const [name, value] of Object.entries({
+    worldcover_class: 10,
+    clay_fraction: 0.199,
+    sand_fraction: 0.367,
+    soil_ph: 5.5,
+    soc_stock_t_ha: 170,
+  })) {
+    await page.locator(`input[name="${name}"]`).fill(String(value));
+  }
+  await page
+    .getByLabel("Feature collection time", { exact: true })
+    .fill("2026-11-01T12:00");
+  await page
+    .getByLabel("Source", { exact: true })
+    .fill("Handoff test example; not a field observation");
+  await page
+    .getByRole("button", { name: "Submit prediction", exact: true })
+    .click();
+  await expect(page.getByText(/Relative score 0.7506/)).toBeVisible();
+  await page.getByLabel("Model version", { exact: true }).selectOption("2");
+  await expect(page.locator('input[name="aspect_cos"]')).toBeVisible();
+  await page.locator('input[name="worldcover_class"]').fill("10");
+  await page
+    .getByLabel("Feature collection time", { exact: true })
+    .fill("2026-11-01T12:00");
+  await page
+    .getByLabel("Source", { exact: true })
+    .fill("Handoff null-imputation test");
+  await page
+    .getByRole("button", { name: "Submit prediction", exact: true })
+    .click();
+  await expect(page.getByText(/Imputed fields: clay_fraction/)).toBeVisible();
+  await expect(page.getByText(/Relative score/).first()).toBeVisible();
+});
+
+test("supplied examples reproduce V1 reference without a monitoring location", async ({
+  page,
+}) => {
+  await login(page, "official");
+  await page
+    .getByRole("link", { name: "Model integration", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Load supplied example", exact: true })
+    .click();
+  await expect(
+    page.getByText("Expected reference score: 0.7506392613449581", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Run supplied example", exact: true })
+    .click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Relative score 0.75063926" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("columnheader", { name: "Recall", exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("Model version", { exact: true }).selectOption("2");
+  await expect(
+    page.getByRole("button", { name: "Run supplied example", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Load supplied example", exact: true })
+    .click();
+  await expect(
+    page.getByText("Expected reference score: Not provided", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Run supplied example", exact: true })
+    .click();
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Supplied demonstration example" }),
+  ).toBeVisible();
+});
+
+test("verified incident retains context through confirmed response and completion", async ({
+  page,
+}) => {
+  await login(page, "official");
+  const created = await page.request.post("/api/reports", {
+    data: {
+      clientId: "response-workflow-browser",
+      incident: "Road Blockage",
+      location: "Pilot incident location",
+      lat: 25.297,
+      lng: 91.582,
+      severity: "High",
+      description: "Safe labelled browser response demonstration incident.",
+    },
+  });
+  expect(created.ok()).toBeTruthy();
+  const incident = await created.json();
+  await page.getByRole("link", { name: "Reports", exact: true }).click();
+  const card = page
+    .locator(".rounded-2xl")
+    .filter({
+      has: page.getByText("Road Blockage · Pilot incident location", {
+        exact: true,
+      }),
+    })
+    .last();
+  await card
+    .getByLabel("Review note", { exact: true })
+    .fill("Verified for a safe demonstration response");
+  await card.getByRole("button", { name: "Verify", exact: true }).click();
+  await card.getByRole("link", { name: "Plan response", exact: true }).click();
+  await expect(
+    page.getByText(`Report ID: ${incident.id}`, { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Location", { exact: true })
+    .selectOption("demo-location-0");
+  await page.getByLabel("Team", { exact: true }).selectOption("demo-team-0");
+  await expect(
+    page.getByRole("button", { name: "Deploy", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByLabel("Confirm monitoring location association", { exact: true })
+    .check();
+  await page.getByRole("button", { name: "Deploy", exact: true }).click();
+  const deployment = page
+    .locator(".rounded-2xl")
+    .filter({ hasText: `Report ID: ${incident.id} · GPS:` })
+    .last();
+  await deployment
+    .getByRole("button", { name: "On Site", exact: true })
+    .click();
+  await deployment
+    .getByRole("button", { name: "Completed", exact: true })
+    .click();
+  await expect(
+    deployment.getByText("Completed", { exact: true }),
   ).toBeVisible();
 });

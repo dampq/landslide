@@ -1,0 +1,22 @@
+
+> ashtaraksha@1.0.0 build
+> tsc -b && vite build && node scripts/build-sw.mjs
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 2467 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                             0.95 kB │ gzip:   0.46 kB
+dist/assets/index-CX2LyGt5.css             30.61 kB │ gzip:  10.48 kB
+dist/assets/rolldown-runtime-hePW80VL.js    0.71 kB │ gzip:   0.42 kB
+dist/assets/maps-B9rLG5AZ.js              154.99 kB │ gzip:  45.54 kB
+dist/assets/charts-DM7WPQq3.js            384.35 kB │ gzip: 110.40 kB
+dist/assets/index-DR80O9D2.js             434.84 kB │ gzip: 129.63 kB
+
+✓ built in 601ms
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
