@@ -1,0 +1,96 @@
+{
+  "1": {
+    "type": "RandomForestClassifier",
+    "n_estimators": 250,
+    "estimator_input_count": 13,
+    "classes": [
+      0,
+      1
+    ],
+    "class_semantics": [
+      "sampled background of unknown outcome",
+      "reported fatal landslide occurrence"
+    ],
+    "pipeline_raw_features": [
+      "worldcover_class",
+      "clay_fraction",
+      "sand_fraction",
+      "soil_ph",
+      "soc_stock_t_ha"
+    ],
+    "pipeline_transformed_features": [
+      "clay_fraction",
+      "sand_fraction",
+      "soil_ph",
+      "soc_stock_t_ha",
+      "worldcover_class_10",
+      "worldcover_class_30",
+      "worldcover_class_40",
+      "worldcover_class_50",
+      "worldcover_class_60",
+      "worldcover_class_70",
+      "worldcover_class_80",
+      "worldcover_class_90",
+      "worldcover_class_100"
+    ],
+    "pipeline_matches_supplied_schema": true,
+    "metadata_status": "trained exploratory presence-background Random Forest",
+    "training_performed": false
+  },
+  "2": {
+    "type": "RandomForestClassifier",
+    "n_estimators": 250,
+    "estimator_input_count": 22,
+    "classes": [
+      0,
+      1
+    ],
+    "class_semantics": [
+      "sampled background of unknown outcome",
+      "reported fatal landslide occurrence"
+    ],
+    "pipeline_raw_features": [
+      "worldcover_class",
+      "clay_fraction",
+      "sand_fraction",
+      "soil_ph",
+      "soc_stock_t_ha",
+      "bio12_annual_precipitation_mm",
+      "bio13_wettest_month_precip_mm",
+      "bio15_precipitation_seasonality_pct",
+      "bio16_wettest_quarter_precip_mm",
+      "bio17_driest_quarter_precip_mm",
+      "elevation_m",
+      "slope_degrees",
+      "aspect_sin",
+      "aspect_cos"
+    ],
+    "pipeline_transformed_features": [
+      "clay_fraction",
+      "sand_fraction",
+      "soil_ph",
+      "soc_stock_t_ha",
+      "bio12_annual_precipitation_mm",
+      "bio13_wettest_month_precip_mm",
+      "bio15_precipitation_seasonality_pct",
+      "bio16_wettest_quarter_precip_mm",
+      "bio17_driest_quarter_precip_mm",
+      "elevation_m",
+      "slope_degrees",
+      "aspect_sin",
+      "aspect_cos",
+      "worldcover_class_10",
+      "worldcover_class_30",
+      "worldcover_class_40",
+      "worldcover_class_50",
+      "worldcover_class_60",
+      "worldcover_class_70",
+      "worldcover_class_80",
+      "worldcover_class_90",
+      "worldcover_class_100"
+    ],
+    "pipeline_matches_supplied_schema": true,
+    "metadata_status": "trained exploratory static presence-background susceptibility model",
+    "training_performed": false
+  }
+}

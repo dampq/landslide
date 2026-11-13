@@ -11,7 +11,7 @@ import {
   isValidElement,
   ReactElement,
 } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { MapContainer, CircleMarker, Popup } from "react-leaflet";
 import {
   ResponsiveContainer,
@@ -445,6 +445,14 @@ function ReportCard({
             </div>
           </div>
         )}
+      {account?.role !== "citizen" && row.status === "Verified" && (
+        <Link
+          className="mt-3 block text-blue-700 underline"
+          to={`/response?reportId=${encodeURIComponent(row.id)}`}
+        >
+          {t("Plan response")}
+        </Link>
+      )}
       <Result job={job} />
     </Card>
   );
@@ -457,6 +465,13 @@ export function Reports() {
     [gps, setGps] = useState({ lat: "", lng: "" }),
     [message, setMessage] = useState(""),
     [syncError, setSyncError] = useState("");
+  useEffect(() => {
+    const synced = () => {
+      if (online && !queueIsSyncing()) void query.refresh();
+    };
+    window.addEventListener("queue-changed", synced);
+    return () => window.removeEventListener("queue-changed", synced);
+  }, [online, query.refresh]);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
@@ -1424,17 +1439,137 @@ export function Weather() {
   );
 }
 
-const modelFeatureLabels: Record<string, string> = {
-  rainfall24h: "Rainfall past 24h (mm)",
-  rainfall72h: "Rainfall past 72h (mm)",
-  soilMoisture: "Soil saturation (%)",
-  slope: "Slope (degrees)",
-  groundMovement: "Ground movement (mm/hour)",
-  historicalEvents: "Historical event count",
-};
+function ModelExamples({ version }: { version: string }) {
+  const { t } = useApp();
+  const comparison = useData("/api/model/comparison");
+  const [example, setExample] = useState<any>(null),
+    [result, setResult] = useState<any>(null);
+  const job = useAction();
+  useEffect(() => {
+    setExample(null);
+    setResult(null);
+  }, [version]);
+  return (
+    <Card className="my-5 p-5">
+      <h2 className="font-bold">{t("Supplied demonstration example")}</h2>
+      <p>{t("Example assessment notice")}</p>
+      <Button
+        disabled={job.busy}
+        onClick={() =>
+          job.run(async () => {
+            setResult(null);
+            setExample(await api(`/api/model/examples/${version}`));
+          }, "")
+        }
+      >
+        {t("Load supplied example")}
+      </Button>
+      {example?.modelVersion === version && (
+        <>
+          <p className="my-3 text-sm">{example.reference}</p>
+          <dl>
+            {Object.entries(example.inputs).map(([name, value]) => (
+              <div key={name} className="break-words">
+                {name} (
+                {example.features.find((f: any) => f.name === name)?.unit}):{" "}
+                {String(value)}
+              </div>
+            ))}
+          </dl>
+          <p>
+            {t("Expected reference score")}:{" "}
+            {example.referenceScore ?? t("Not provided")}
+          </p>
+          <Button
+            disabled={job.busy}
+            onClick={() =>
+              job.run(async () => {
+                setResult(await post(`/api/model/examples/${version}/run`, {}));
+              }, "")
+            }
+          >
+            {t("Run supplied example")}
+          </Button>
+        </>
+      )}
+      {result?.modelVersion === version && (
+        <div role="status" className="success my-3">
+          <b>
+            {t("Supplied demonstration example")}: {t("Relative score")}{" "}
+            {result.experimental_presence_background_score.toFixed(8)}
+          </b>
+          <p>
+            {t("Imputed fields")}: {result.imputed_fields.join(", ") || "—"}
+          </p>
+          <p>{t("Experimental score notice")}</p>
+        </div>
+      )}
+      <Result job={job} />
+      <h2 className="mt-5 font-bold">{t("Reported spatial evaluation")}</h2>
+      <p>{t("Evaluation comparison notice")}</p>
+      <Load query={comparison} />
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr>
+              {[
+                "Model version",
+                "Precision",
+                "Recall",
+                "F1",
+                "Threshold",
+                "Evaluated rows",
+                "Independent test size",
+              ].map((k) => (
+                <th scope="col" className="p-2" key={k}>
+                  {t(k)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {comparison.data?.versions.map((v: any) => (
+              <tr key={v.version}>
+                <td className="p-2">
+                  {"V"}
+                  {v.version}
+                </td>
+                {[
+                  "precision",
+                  "recall",
+                  "f1",
+                  "threshold",
+                  "evaluatedRows",
+                  "independentTestSize",
+                ].map((k) => (
+                  <td className="p-2" key={k}>
+                    {v.evaluation[k] == null
+                      ? t("Not provided")
+                      : k === "evaluatedRows"
+                        ? v.evaluation[k]
+                        : v.evaluation[k].toFixed(3)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {comparison.data?.versions.map((v: any) => (
+        <p className="my-2 text-sm" key={v.version}>
+          {"V"}
+          {v.version}: {v.evaluation.method || t("Not provided")}
+        </p>
+      ))}
+      <p>{t("Extraction pending notice")}</p>
+    </Card>
+  );
+}
+
 export function Prediction() {
   const { t } = useApp();
-  const query = useData("/api/model"),
+  const [version, setVersion] = useState("1");
+  const query = useData(`/api/model?version=${version}`),
     history = useData("/api/records/predictions");
   const [id, setId] = useState("");
   const job = useAction();
@@ -1443,12 +1578,16 @@ export function Prediction() {
     e.preventDefault();
     const values = Object.fromEntries(new FormData(e.currentTarget));
     const inputs = Object.fromEntries(
-      query.data.features.map((f: any) => [f.name, Number(values[f.name])]),
+      query.data.features.map((f: any) => [
+        f.name,
+        values[f.name] === "" && f.nullable ? null : Number(values[f.name]),
+      ]),
     );
     await job.run(async () => {
       setResult(
         await post("/api/predictions", {
           locationId: id,
+          modelVersion: version,
           observedAt: new Date(String(values.observedAt)).getTime() / 1000,
           source: values.source,
           inputs,
@@ -1466,26 +1605,51 @@ export function Prediction() {
       <Load query={query} />
       {query.data && !query.data.available && (
         <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <b>{t("No model supplied")}</b>
+          <b>{t("Model unavailable")}</b>
           <p className="mt-2 text-sm">{t(query.data.message)}</p>
         </div>
       )}
       <Card className="p-5">
+        <Field label="Model version">
+          <Select
+            value={version}
+            onChange={(e) => {
+              setVersion(e.target.value);
+              setResult(null);
+            }}
+          >
+            <option value="1">{t("V1 — default")}</option>
+            <option value="2">{t("V2 — experimental comparison")}</option>
+          </Select>
+        </Field>
+        <ModelExamples version={version} />
+        <p className="my-3 text-sm">{t("Experimental score notice")}</p>
+        {version === "2" && (
+          <p className="my-3 text-sm">{t("V2 comparison notice")}</p>
+        )}
+        <p className="my-3 text-sm">{t("Environmental feature guidance")}</p>
         <LocationSelect value={id} onChange={setId} />
-        <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
+        <form
+          key={version}
+          onSubmit={submit}
+          className="grid gap-4 md:grid-cols-2"
+        >
           {query.data?.features.map((f: any) => (
-            <Field key={f.name} label={modelFeatureLabels[f.name] || f.name}>
+            <Field
+              key={f.name}
+              label={`${f.name} (${f.unit})${f.nullable ? " · " + t("Blank values are imputed") : ""}`}
+            >
               <Input
                 name={f.name}
                 type="number"
-                step="any"
+                step={f.choices ? "1" : "any"}
                 min={f.min}
                 max={f.max}
-                required
+                required={!f.nullable}
               />
             </Field>
           ))}
-          <Field label="Observation time">
+          <Field label="Feature collection time">
             <Input name="observedAt" type="datetime-local" required />
           </Field>
           <Field label="Source">
@@ -1502,10 +1666,15 @@ export function Prediction() {
         {result && (
           <div className="success mt-4">
             <b>
-              {(result.probability * 100).toFixed(1)}
-              {t("% · model")} {result.modelVersion}
+              {t("Relative score")}{" "}
+              {result.experimental_presence_background_score.toFixed(4)}
+              {" · "} {t("Model version")} {result.modelVersion}
             </b>
-            <p>{t(result.notice)}</p>
+            <p>{t("Experimental score notice")}</p>
+            {result.modelVersion === "2" && <p>{t("V2 comparison notice")}</p>}
+            <p>
+              {t("Imputed fields")}: {result.imputed_fields.join(", ") || "—"}
+            </p>
           </div>
         )}
       </Card>
@@ -1602,6 +1771,17 @@ export function Alerts() {
 
 export function ResponsePage() {
   const { t } = useApp();
+  const [params] = useSearchParams();
+  const reportId = params.get("reportId") || "";
+  const incident = useData(
+    reportId
+      ? `/api/response/reports/${encodeURIComponent(reportId)}`
+      : "/api/records/reports?limit=1",
+  );
+  const [confirmed, setConfirmed] = useState(false);
+  useEffect(() => {
+    setConfirmed(false);
+  }, [reportId]);
   const priorities = useData("/api/response/priorities"),
     teams = useData("/api/records/teams"),
     deployments = useData("/api/records/deployments");
@@ -1622,6 +1802,40 @@ export function ResponsePage() {
         title="Response"
         sub="Planning scores combine reviewed risk levels, approximate exposure and blocked roads. They are not ML predictions."
       />
+      {reportId && (
+        <Card className="my-4 p-5">
+          <h2>{t("Verified incident response")}</h2>
+          <Load query={incident} />
+          {incident.data?.id && (
+            <>
+              <p>
+                {t("Report ID")}: {incident.data.id}
+              </p>
+              <p>
+                {t("GPS:")} {incident.data.lat}, {incident.data.lng}
+              </p>
+              <p>{incident.data.description}</p>
+              <p>
+                {incident.data.verificationNote} · {incident.data.verifiedBy}
+              </p>
+              {incident.data.reviewHistory?.map((r: any, i: number) => (
+                <p key={i}>
+                  {t(r.status)} · {r.note} · {r.reviewer} · {time(r.at)}
+                </p>
+              ))}
+              <p>{t("Confirm association notice")}</p>
+              <Field label="Confirm monitoring location association">
+                <Input
+                  type="checkbox"
+                  checked={confirmed}
+                  disabled={!id}
+                  onChange={(e) => setConfirmed(e.target.checked)}
+                />
+              </Field>
+            </>
+          )}
+        </Card>
+      )}
       <Load query={priorities} />
       <div className="record-grid">
         {priorities.data?.items.map((r: Row) => (
@@ -1639,7 +1853,10 @@ export function ResponsePage() {
             <Button
               className="mt-3"
               variant={id === r.id ? "default" : "outline"}
-              onClick={() => setId(r.id)}
+              onClick={() => {
+                setId(r.id);
+                setConfirmed(false);
+              }}
             >
               {t("Select location")}
             </Button>
@@ -1652,7 +1869,13 @@ export function ResponsePage() {
           onSubmit={(e) => {
             e.preventDefault();
             void job.run(async () => {
-              await post("/api/deployments", { locationId: id, teamId: team });
+              await post("/api/deployments", {
+                locationId: id,
+                teamId: team,
+                ...(reportId
+                  ? { reportId, confirmLocationAssociation: confirmed }
+                  : {}),
+              });
               setTeam("");
               await refresh();
             });
@@ -1660,7 +1883,13 @@ export function ResponsePage() {
           className="flex flex-wrap items-end gap-3"
         >
           <div className="flex-1">
-            <LocationSelect value={id} onChange={setId} />
+            <LocationSelect
+              value={id}
+              onChange={(value) => {
+                setId(value);
+                setConfirmed(false);
+              }}
+            />
           </div>
           <Field label="Team">
             <Select
@@ -1678,7 +1907,16 @@ export function ResponsePage() {
                 ))}
             </Select>
           </Field>
-          <Button disabled={job.busy || !id || !team} type="submit">
+          <Button
+            disabled={
+              job.busy ||
+              !id ||
+              !team ||
+              (!!reportId &&
+                (!confirmed || !incident.data?.id || !!incident.error))
+            }
+            type="submit"
+          >
             {t("Deploy")}
           </Button>
           <Button
@@ -1705,6 +1943,12 @@ export function ResponsePage() {
             <b>
               {r.team} → {r.location}
             </b>
+            {r.reportId && (
+              <p>
+                {t("Report ID")}: {r.reportId} · {t("GPS:")}{" "}
+                {r.reportCoordinates.lat}, {r.reportCoordinates.lng}
+              </p>
+            )}
             <div className="my-3">
               <Risk value={r.status} />
             </div>

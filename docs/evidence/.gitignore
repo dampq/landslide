@@ -1,0 +1,2 @@
+# Keep actual check output despite the repository-wide *.log rule.
+!*.log

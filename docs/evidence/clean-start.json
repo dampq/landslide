@@ -1,0 +1,25 @@
+{
+  "checked_utc": "2026-11-13T11:44:23.105052+00:00",
+  "startup_command": "npm run dev:clean",
+  "startup_runs": 2,
+  "database_counts_after_restart": {
+    "ashtaraksha": {
+      "accounts": 0,
+      "records": 56
+    },
+    "ashtaraksha_clean": {
+      "accounts": 0,
+      "records": 0
+    }
+  },
+  "api_health": {
+    "status": "ok",
+    "service": "ashtaraksha",
+    "database": "PostgreSQL",
+    "postgis": "3.5 USE_GEOS=1 USE_PROJ=1 USE_STATS=1",
+    "version": "3.0.0"
+  },
+  "frontend_login_status": 200,
+  "no_database_deleted": true,
+  "start_script_sha256": "1d4fa2321c11f16bf16ffb3144e1854b59f41f49008b360f8c3a9daee94cfbec"
+}
