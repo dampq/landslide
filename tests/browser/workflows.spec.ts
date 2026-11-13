@@ -1223,3 +1223,72 @@ test("no configured teams, busy teams and coverage exclusions still permit verif
     ),
   ).toBeVisible();
 });
+
+test("inline team setup preserves a corrected destination and review note", async ({
+  page,
+}) => {
+  await login(page, "official");
+  const made = await page.request.post("/api/reports", {
+    data: {
+      clientId: "inline-team-report",
+      incident: "Other",
+      location: "Inline setup destination",
+      lat: 12.983753,
+      lng: 77.675811,
+      severity: "Low",
+      description: "A safe presentation report used for inline team setup.",
+    },
+  });
+  const report = await made.json();
+  let saved = false;
+  await page.route("**/api/records/teams?limit=500", (route) =>
+    saved ? route.continue() : route.fulfill({ json: { items: [], total: 0 } }),
+  );
+  await page.goto(`/response?reportId=${report.id}`);
+  await page
+    .getByLabel("Review note", { exact: true })
+    .fill("Preserve this review during team setup");
+  await page.getByLabel("Destination latitude", { exact: true }).fill("12.984");
+  await page
+    .getByLabel("Destination correction reason", { exact: true })
+    .fill("Reporter confirmed the corrected access point");
+  await page
+    .getByRole("button", { name: "Register a team here", exact: true })
+    .click();
+  await page
+    .getByLabel("Team name", { exact: true })
+    .fill("Presentation practice team");
+  await page
+    .getByLabel("Team information source", { exact: true })
+    .fill("Explicit synthetic browser demonstration");
+  await page.getByLabel("This is a practice team", { exact: true }).check();
+  const created = page.waitForResponse(
+    (r) =>
+      r.url().endsWith("/api/records/teams") && r.request().method() === "POST",
+  );
+  saved = true;
+  await page.getByRole("button", { name: "Save team", exact: true }).click();
+  const team = await (await created).json();
+  expect(team.simulated).toBe(true);
+  await expect(page.getByLabel("Team", { exact: true })).toHaveValue(team.id);
+  await expect(page.getByLabel("Review note", { exact: true })).toHaveValue(
+    "Preserve this review during team setup",
+  );
+  await expect(
+    page.getByLabel("Destination latitude", { exact: true }),
+  ).toHaveValue("12.984");
+  await expect(
+    page.getByLabel("I confirm this team", { exact: true }),
+  ).not.toBeChecked();
+  await expect(
+    page.getByRole("button", { name: "Verify and assign", exact: true }),
+  ).toBeDisabled();
+  await page.getByLabel("I confirm this destination", { exact: true }).check();
+  await page.getByLabel("I confirm this team", { exact: true }).check();
+  await page
+    .getByRole("button", { name: "Verify and assign", exact: true })
+    .click();
+  await expect(
+    page.getByText("Presentation practice team · Assigned", { exact: true }),
+  ).toBeVisible();
+});

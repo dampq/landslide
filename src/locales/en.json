@@ -410,5 +410,12 @@
   "coverageEast": "Coverage east longitude (optional)",
   "coverageNorth": "Coverage north latitude (optional)",
   "Refresh response": "Refresh response",
-  "Emergency contact notice": "Submitting a report does not automatically contact emergency services."
+  "Emergency contact notice": "Submitting a report does not automatically contact emergency services.",
+  "Register a team here": "Register a team here",
+  "Inline team setup notice": "Enter a team you are authorised to register. Registration records the team; it does not contact or dispatch anyone. Coverage remains unconfigured and must be confirmed before assignment.",
+  "Team name": "Team name",
+  "Team information source": "Team information source",
+  "This is a practice team": "This is a practice team",
+  "Save team": "Save team",
+  "Cancel team setup": "Cancel team setup"
 }

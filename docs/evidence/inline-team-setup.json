@@ -1,0 +1,16 @@
+{
+  "checked_utc": "2026-11-13T13:43:11.843151+00:00",
+  "command": "npm run test:e2e -- --grep 'inline team setup|report-first|urgent unverified'",
+  "exit_code": 0,
+  "browser_tests_passed": 3,
+  "build_passed": true,
+  "translation_check_keys": 419,
+  "source_sha256": {
+    "src/components/IncidentResponse.tsx": "09f8fba869866f459d1464b0d403b5d985f17daa91ddb1a74dae15c89ea16db2",
+    "src/locales/en.json": "8d6ccef2f1fd107e14f3a5ec2000c1cfaf524ad13770b43b7f7ad95f654374c3",
+    "src/locales/hi.json": "563486d1aca03a137b8c0a42c8fdda97311d9833e01797e822815fa50c3a055d",
+    "src/locales/as.json": "43afdaf5265d2f8aa915c0f1e31679713e524f819f69d2083a136312e3fb9d1b",
+    "tests/browser/workflows.spec.ts": "7ff424b8a9fa2d8d9d1d7afc6a1ea270d99dd2263156db80ffadb0f936b8f72e"
+  },
+  "log_sha256": "1dc790ae2ca54e58c1c9787ed706254050a209922618cb1b88c8d89c7b2e6bea"
+}

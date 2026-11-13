@@ -32,6 +32,8 @@ export default function IncidentResponse({ reportId }: { reportId: string }) {
   const [note, setNote] = useState(""),
     [correction, setCorrection] = useState(""),
     [urgentReason, setUrgentReason] = useState("");
+  const [showTeamSetup, setShowTeamSetup] = useState(false);
+  const [practiceTeam, setPracticeTeam] = useState(false);
   const [mode, setMode] = useState("verify-and-assign");
   const [destinationConfirmed, setDestinationConfirmed] = useState(false),
     [teamConfirmed, setTeamConfirmed] = useState(false);
@@ -92,6 +94,22 @@ export default function IncidentResponse({ reportId }: { reportId: string }) {
     setDestinationConfirmed(false);
     setTeamConfirmed(false);
   };
+  async function createTeam(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
+    await action(async () => {
+      const saved = await post("/api/records/teams", {
+        name: values.name,
+        source: values.source,
+        simulated: practiceTeam,
+      });
+      setTeam(saved.id);
+      setTeamConfirmed(false);
+      setShowTeamSetup(false);
+      setPracticeTeam(false);
+    });
+  }
   return (
     <>
       <h1 className="mb-3 text-3xl font-bold">{t("Incident response")}</h1>
@@ -301,6 +319,64 @@ export default function IncidentResponse({ reportId }: { reportId: string }) {
                     {t("I confirm this team")}
                   </label>
                 </>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => setShowTeamSetup((v) => !v)}
+              >
+                {t("Register a team here")}
+              </Button>
+              {showTeamSetup && (
+                <form
+                  onSubmit={createTeam}
+                  className="space-y-3 rounded-xl border p-4"
+                >
+                  <h3 className="font-bold">{t("Register a team here")}</h3>
+                  <p>{t("Inline team setup notice")}</p>
+                  <label className="block">
+                    {t("Team name")}
+                    <Input
+                      className="w-full"
+                      name="name"
+                      aria-label={t("Team name")}
+                      required
+                      maxLength={200}
+                    />
+                  </label>
+                  <label className="block">
+                    {t("Team information source")}
+                    <Input
+                      className="w-full"
+                      name="source"
+                      aria-label={t("Team information source")}
+                      required
+                      minLength={3}
+                      maxLength={1000}
+                    />
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={practiceTeam}
+                      onChange={(e) => setPracticeTeam(e.target.checked)}
+                    />
+                    {t("This is a practice team")}
+                  </label>
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={busy}>
+                      {t("Save team")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowTeamSetup(false)}
+                    >
+                      {t("Cancel team setup")}
+                    </Button>
+                  </div>
+                </form>
               )}
               {!verified && (
                 <label className="block">
