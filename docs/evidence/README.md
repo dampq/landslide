@@ -36,3 +36,7 @@ The `20261113T112840Z/` run passed the table-header check but exposed a separate
 The `20261113T113120Z/` full run passed all new milestone tests, but an existing offline account-switching test failed: trace evidence showed POST /api/reports succeeded after GET /api/records/reports had already returned, leaving the visible list stale. The focused offline test passed on retry, confirming timing sensitivity. The application now refreshes the report list after queue completion instead of depending on ordering. `20261113T113333Z/` captures the full run after that correction. Prior failures remain retained and must not be reported as all-pass runs.
 
 Final milestone outcome: `20261113T113333Z/outcomes.json` confirms 42 Python tests and 23 browser tests passed (zero browser failures/skips), with all recorded command exit codes zero and log hashes verified. This is the passing evidence bundle for the current milestone.
+
+## Current report-first response run
+
+`20261113T132736Z/outcomes.json` records 50 passed Python checks and 25 passed browser tests, with all command exit codes zero. Source and log hashes were verified. It supersedes the earlier monitoring-location-required UI walkthrough; historical evidence is preserved unchanged. See `../MILESTONE_DEMO.md` for the current report-first workflow and stated limitations.

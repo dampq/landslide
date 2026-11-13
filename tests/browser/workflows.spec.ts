@@ -478,6 +478,10 @@ test("officials assign and complete a response deployment through the portal", a
       }),
     })
     .last();
+  await expect(deployment.getByText("Assigned", { exact: true })).toBeVisible();
+  await deployment
+    .getByRole("button", { name: "En Route", exact: true })
+    .click();
   await expect(deployment.getByText("En Route", { exact: true })).toBeVisible();
   await deployment
     .getByRole("button", { name: "On Site", exact: true })
@@ -1014,10 +1018,18 @@ test("supplied examples reproduce V1 reference without a monitoring location", a
   ).toBeVisible();
 });
 
-test("verified incident retains context through confirmed response and completion", async ({
+test("report-first verification and assignment needs no monitoring location", async ({
   page,
 }) => {
   await login(page, "official");
+  const teamSetup = await page.request.post("/api/records/teams", {
+    data: {
+      name: "Dispatch browser team",
+      source: "Synthetic browser test",
+      simulated: true,
+    },
+  });
+  const newTeam = await teamSetup.json();
   const created = await page.request.post("/api/reports", {
     data: {
       clientId: "response-workflow-browser",
@@ -1025,12 +1037,13 @@ test("verified incident retains context through confirmed response and completio
       location: "Pilot incident location",
       lat: 25.297,
       lng: 91.582,
+      gpsAccuracyM: 25,
       severity: "High",
       description: "Safe labelled browser response demonstration incident.",
     },
   });
-  expect(created.ok()).toBeTruthy();
-  const incident = await created.json();
+  const r = await created.json();
+  // Dispatch must use incident coordinates and must not request a Location control.
   await page.getByRole("link", { name: "Reports", exact: true }).click();
   const card = page
     .locator(".rounded-2xl")
@@ -1040,36 +1053,173 @@ test("verified incident retains context through confirmed response and completio
       }),
     })
     .last();
-  await card
-    .getByLabel("Review note", { exact: true })
-    .fill("Verified for a safe demonstration response");
-  await card.getByRole("button", { name: "Verify", exact: true }).click();
   await card.getByRole("link", { name: "Plan response", exact: true }).click();
   await expect(
-    page.getByText(`Report ID: ${incident.id}`, { exact: true }),
+    page.getByText(`Report ID: ${r.id}`, { exact: true }),
   ).toBeVisible();
+  await expect(page.getByLabel("Location", { exact: true })).toHaveCount(0);
   await page
-    .getByLabel("Location", { exact: true })
-    .selectOption("demo-location-0");
-  await page.getByLabel("Team", { exact: true }).selectOption("demo-team-0");
+    .getByLabel("Review note", { exact: true })
+    .fill("Reviewed for the safe presentation response");
+  await page.getByLabel("Team", { exact: true }).selectOption(newTeam.id);
   await expect(
-    page.getByRole("button", { name: "Deploy", exact: true }),
+    page.getByRole("button", { name: "Verify and assign", exact: true }),
   ).toBeDisabled();
+  await page.getByLabel("I confirm this destination", { exact: true }).check();
+  await page.getByLabel("I confirm this team", { exact: true }).check();
   await page
-    .getByLabel("Confirm monitoring location association", { exact: true })
-    .check();
-  await page.getByRole("button", { name: "Deploy", exact: true }).click();
+    .getByRole("button", { name: "Verify and assign", exact: true })
+    .click();
   const deployment = page
     .locator(".rounded-2xl")
-    .filter({ hasText: `Report ID: ${incident.id} · GPS:` })
+    .filter({
+      has: page.getByText(/Dispatch browser team · /),
+    })
     .last();
+  await expect(deployment.getByText(/ · Assigned$/).first()).toBeVisible();
+  await deployment
+    .getByRole("button", { name: "En Route", exact: true })
+    .click();
   await deployment
     .getByRole("button", { name: "On Site", exact: true })
     .click();
   await deployment
     .getByRole("button", { name: "Completed", exact: true })
     .click();
+  await expect(deployment.getByText(/ · Completed$/).first()).toBeVisible();
+});
+
+test("urgent unverified dispatch records a reason and destination correction", async ({
+  page,
+}) => {
+  await login(page, "official");
+  const teamSetup = await page.request.post("/api/records/teams", {
+    data: {
+      name: "Urgent investigation team",
+      source: "Synthetic browser test",
+      simulated: true,
+    },
+  });
+  const newTeam = await teamSetup.json();
+  const created = await page.request.post("/api/reports", {
+    data: {
+      clientId: "urgent-browser-incident",
+      incident: "Other",
+      location: "Investigation location",
+      lat: 25.3,
+      lng: 91.6,
+      severity: "High",
+      description: "An unconfirmed incident needing investigation.",
+    },
+  });
+  const r = await created.json();
+  await page.goto(`/response?reportId=${r.id}`);
+  await page
+    .getByLabel("Review note", { exact: true })
+    .fill("Investigation required before confirmation");
+  await page.getByLabel("Destination latitude", { exact: true }).fill("25.31");
+  await page
+    .getByLabel("Destination correction reason", { exact: true })
+    .fill("Confirmed access point with the reporter");
+  await page.getByLabel("Team", { exact: true }).selectOption(newTeam.id);
+  await page
+    .getByLabel("Dispatch decision", { exact: true })
+    .selectOption("urgent-unverified");
+  await page
+    .getByLabel("Urgent dispatch reason", { exact: true })
+    .fill("Potential immediate danger warrants investigation");
+  await page.getByLabel("I confirm this destination", { exact: true }).check();
+  await page.getByLabel("I confirm this team", { exact: true }).check();
+  await page
+    .getByRole("button", { name: "Assign urgent investigation", exact: true })
+    .click();
   await expect(
-    deployment.getByText("Completed", { exact: true }),
+    page.getByText("Awaiting Verification · Investigation location", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Urgent unverified dispatch: Potential immediate danger warrants investigation",
+      { exact: true },
+    ),
+  ).toBeVisible();
+});
+
+test("no configured teams, busy teams and coverage exclusions still permit verification", async ({
+  page,
+}) => {
+  await login(page, "official");
+  const response = await page.request.post("/api/reports", {
+    data: {
+      clientId: "no-teams-browser-case",
+      incident: "Other",
+      location: "Unassigned incident",
+      lat: 25.3,
+      lng: 91.6,
+      severity: "Low",
+      description: "An incident can be reviewed without a configured team.",
+    },
+  });
+  const item = await response.json();
+  const path = "**/api/records/teams?limit=500";
+  await page.route(path, (route) =>
+    route.fulfill({ json: { items: [], total: 0 } }),
+  );
+  await page.goto(`/response?reportId=${item.id}`);
+  await expect(
+    page.getByText(
+      "No teams configured. You can verify without dispatch; use team setup to register a team.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await page
+    .getByLabel("Review note", { exact: true })
+    .fill("Reviewed and pending availability of a team");
+  await page.getByRole("button", { name: "Verify only", exact: true }).click();
+  await expect(
+    page.getByText("Verified · Unassigned incident", { exact: true }),
+  ).toBeVisible();
+  await page.unroute(path);
+  await page.route(path, (route) =>
+    route.fulfill({
+      json: {
+        items: [{ id: "busy-team", name: "Busy team", status: "Assigned" }],
+        total: 1,
+      },
+    }),
+  );
+  await page.reload();
+  await expect(
+    page.getByText(
+      "All teams are busy. Verification can proceed without dispatch.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await page.unroute(path);
+  await page.route(path, (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            id: "outside-team",
+            name: "Outside team",
+            status: "Available",
+            coverageWest: 0,
+            coverageSouth: 0,
+            coverageEast: 1,
+            coverageNorth: 1,
+          },
+        ],
+        total: 1,
+      },
+    }),
+  );
+  await page.reload();
+  await expect(
+    page.getByText(
+      "No available team covers this destination under its configured bounds.",
+      { exact: true },
+    ),
   ).toBeVisible();
 });

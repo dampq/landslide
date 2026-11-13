@@ -189,14 +189,28 @@ class ReportInput(BaseModel):
     location: str = Field(min_length=2, max_length=200)
     lat: float = Field(ge=-90, le=90, allow_inf_nan=False)
     lng: float = Field(ge=-180, le=180, allow_inf_nan=False)
+    gpsAccuracyM: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     severity: Literal["Low", "Moderate", "High", "Critical"]
     description: str = Field(min_length=10, max_length=4000)
     model_config = ConfigDict(extra="forbid")
 
 
 class Verification(BaseModel):
-    status: Literal["Verified", "Rejected", "Resolved"]
+    status: Literal["Verified", "Rejected", "Resolved", "Clarification Requested"]
     note: str = Field(min_length=5, max_length=2000)
+
+
+class IncidentDispatchInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    teamId: str = Field(min_length=1)
+    lat: float = Field(ge=-90, le=90, allow_inf_nan=False)
+    lng: float = Field(ge=-180, le=180, allow_inf_nan=False)
+    destinationConfirmed: bool = Field(strict=True)
+    teamConfirmed: bool = Field(strict=True)
+    note: str = Field(min_length=5, max_length=2000)
+    correctionReason: str = Field(default="", max_length=2000)
+    mode: Literal["verify-and-assign", "urgent-unverified"] = "verify-and-assign"
+    urgentReason: str = Field(default="", max_length=2000)
 
 
 class PredictionInput(BaseModel):
@@ -307,6 +321,14 @@ def valid_record(kind, data):
         raise HTTPException(422, "Historical event time must be valid UTC Unix seconds")
     if not isinstance(data.get("simulated"), bool):
         raise HTTPException(422, "simulated must explicitly be true or false")
+    if kind == "teams":
+        bounds = [data.get(k) for k in ["coverageWest", "coverageSouth", "coverageEast", "coverageNorth"]]
+        if any(v not in (None, "") for v in bounds):
+            if not all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in bounds):
+                raise HTTPException(422, "Supply all four numeric coverage bounds")
+            w, south, e, north = bounds
+            if not (-180 <= w <= e <= 180 and -90 <= south <= north <= 90):
+                raise HTTPException(422, "Invalid team coverage bounds")
     if kind == "satellite" and not str(data["url"]).startswith("https://"):
         raise HTTPException(422, "Imagery URL must use HTTPS")
     if kind == "villages" and not data["simulated"]:
@@ -456,8 +478,16 @@ def records(
         .limit(min(max(limit, 1), 500))
         .offset(max(offset, 0))
     ).all()
+    serialized = [serial(r) for r in items]
+    if kind == "reports" and items:
+        latest = {}
+        for deployment in db.scalars(select(Record).where(Record.kind == "deployments", Record.data["reportId"].astext.in_([r.id for r in items])).order_by(Record.created.desc())):
+            latest.setdefault(deployment.data["reportId"], deployment.data["status"])
+        for entry in serialized:
+            if entry["id"] in latest:
+                entry["responseStatus"] = latest[entry["id"]]
     return {
-        "items": [serial(r) for r in items],
+        "items": serialized,
         "total": total,
         "limit": min(max(limit, 1), 500),
         "offset": max(offset, 0),
@@ -563,6 +593,22 @@ def verify_report(
     r.updated = now()
     audit(db, account, "report:" + body.status, id)
     return serial(r)
+
+
+@app.post("/api/reports/{id}/clarification")
+def clarify_report(id: str, body: dict, account=Depends(user), db=Depends(db_session)):
+    report = db.scalar(select(Record).where(Record.id == id, Record.kind == "reports").with_for_update())
+    if not report or report.owner_id != account.id:
+        raise HTTPException(404, "Report not found")
+    note = body.get("note")
+    if not isinstance(note, str) or not 5 <= len(note.strip()) <= 2000:
+        raise HTTPException(422, "Clarification must contain 5–2000 characters")
+    if report.data["status"] != "Clarification Requested":
+        raise HTTPException(409, "No clarification is currently requested")
+    report.data = {**report.data, "status": "Awaiting Verification", "clarifications": [*report.data.get("clarifications", []), {"note": note.strip(), "by": account.id, "at": now()}]}
+    report.updated = now()
+    audit(db, account, "report:clarification", id)
+    return serial(report)
 
 
 @app.post("/api/reports/{id}/media", status_code=201)
@@ -1123,12 +1169,84 @@ def priorities(account=Depends(official), db=Depends(db_session)):
     return {"items": sorted(items, key=lambda v: v["priorityScore"], reverse=True)}
 
 
+def team_covers(team, lat, lng):
+    bounds = [team.data.get(k) for k in ["coverageWest", "coverageSouth", "coverageEast", "coverageNorth"]]
+    if any(v in (None, "") for v in bounds):
+        return True  # Unknown coverage is explicitly disclosed; never claim verified coverage.
+    west, south, east, north = bounds
+    return west <= lng <= east and south <= lat <= north
+
+
 @app.get("/api/response/reports/{id}")
 def planning_report(id: str, account=Depends(official), db=Depends(db_session)):
     report = get_record(db, id, "reports")
-    if report.data.get("status") != "Verified":
-        raise HTTPException(409, "Response planning requires a verified report")
-    return serial(report)
+    duplicates = db.scalars(select(Record).where(
+        Record.kind == "reports", Record.id != id, Record.created >= report.created - 86400,
+        Record.created <= report.created + 86400,
+        Record.data["incident"].astext == report.data["incident"],
+        text("ST_DWithin(ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, 500)")
+    ).params(lng=report.lng, lat=report.lat).order_by(Record.created.desc()).limit(10)).all()
+    return {**serial(report), "deployments": [serial(d) for d in db.scalars(select(Record).where(Record.kind == "deployments", Record.data["reportId"].astext == id).order_by(Record.created.desc()))], "possibleDuplicates": [
+        {"id": r.id, "location": r.data.get("location"), "status": r.data.get("status")} for r in duplicates]}
+
+
+@app.post("/api/reports/{id}/dispatch", status_code=201)
+def dispatch_report(id: str, body: IncidentDispatchInput, account=Depends(official), db=Depends(db_session)):
+    report = db.scalar(select(Record).where(Record.id == id, Record.kind == "reports").with_for_update())
+    if not report:
+        raise HTTPException(404, "Report not found")
+    if report.data.get("status") in ("Rejected", "Resolved"):
+        raise HTTPException(409, "Closed report cannot be assigned")
+    if not body.destinationConfirmed or not body.teamConfirmed:
+        raise HTTPException(422, "Confirm the destination and team")
+    if len(body.note.strip()) < 5:
+        raise HTTPException(422, "Enter a meaningful review note")
+    corrected = body.lat != report.lat or body.lng != report.lng
+    if corrected and len(body.correctionReason.strip()) < 5:
+        raise HTTPException(422, "Explain the destination correction")
+    urgent = body.mode == "urgent-unverified"
+    if urgent and (report.data.get("status") == "Verified" or len(body.urgentReason.strip()) < 10):
+        raise HTTPException(422, "Urgent unverified dispatch requires an unverified report and a reason of at least 10 characters")
+    active = db.scalar(select(Record).where(Record.kind == "deployments",
+        Record.data["reportId"].astext == id,
+        Record.data["status"].astext.in_(["Assigned", "En Route", "On Site"])))
+    if active:
+        raise HTTPException(409, "This report already has an active assignment")
+    team = db.scalar(select(Record).where(Record.id == body.teamId, Record.kind == "teams").with_for_update())
+    if not team:
+        raise HTTPException(404, "Team not found")
+    if team.data.get("status") != "Available":
+        raise HTTPException(409, "Another official has assigned this team. Select another team; report was not changed.")
+    if not team_covers(team, body.lat, body.lng):
+        raise HTTPException(409, "Destination is outside this team's configured coverage")
+    before = report.data["status"]
+    if not urgent:
+        report.data = {**report.data, "status": "Verified", "verificationNote": body.note,
+            "verifiedBy": account.name, "reviewHistory": [*report.data.get("reviewHistory", []),
+                {"status": "Verified", "note": body.note, "reviewerId": account.id, "reviewer": account.name, "at": now()}]}
+        report.updated = now()
+        audit(db, account, "report:Verified", id)
+    elif urgent:
+        audit(db, account, "dispatch:urgent-unverified", id)
+    team.data = {**team.data, "status": "Assigned"}
+    team.updated = now()
+    at = now()
+    data = {"reportId": id, "reportCoordinates": {"lat": report.lat, "lng": report.lng},
+        "reportDescription": report.data["description"], "reportReviewHistory": report.data.get("reviewHistory", []),
+        "reportVerificationNote": report.data.get("verificationNote"),
+        "verificationStatusAtDispatch": report.data["status"], "previousVerificationStatus": before,
+        "teamId": team.id, "team": team.data["name"], "status": "Assigned",
+        "location": report.data["location"], "lat": body.lat, "lng": body.lng,
+        "destinationConfirmedBy": account.id, "destinationConfirmedAt": at,
+        "correctionReason": body.correctionReason if corrected else "",
+        "notes": body.note, "urgentUnverified": urgent, "urgentReason": body.urgentReason if urgent else "",
+        "source": "Official report-based assignment", "simulated": bool(report.data.get("simulated") or team.data.get("simulated")),
+        "statusHistory": [{"status": "Assigned", "by": account.id, "at": at}]}
+    deployment = add_record(db, "deployments", data, account.id)
+    audit(db, account, "deployment:create", deployment.id)
+    if corrected:
+        audit(db, account, "dispatch:destination-corrected", deployment.id)
+    return serial(deployment)
 
 
 @app.post("/api/deployments", status_code=201)
@@ -1157,7 +1275,7 @@ def deploy(body: dict, account=Depends(official), db=Depends(db_session)):
     loc = get_record(db, body.get("locationId"), "locations")
     if team.data.get("status") != "Available":
         raise HTTPException(409, "Team is already assigned")
-    team.data = {**team.data, "status": "En Route"}
+    team.data = {**team.data, "status": "Assigned"}
     team.updated = now()
     r = add_record(
         db,
@@ -1167,7 +1285,7 @@ def deploy(body: dict, account=Depends(official), db=Depends(db_session)):
             "team": team.data["name"],
             "locationId": loc.id,
             "location": loc.data["name"],
-            "status": "En Route",
+            "status": "Assigned",
             "notes": str(body.get("notes", ""))[:2000],
             **(incident or {}),
             "source": "Official assignment",
@@ -1197,6 +1315,7 @@ def deployment_status(
     status = body.get("status")
     current = r.data["status"]
     if status not in {
+        "Assigned": ["En Route", "Cancelled"],
         "En Route": ["On Site", "Cancelled"],
         "On Site": ["Completed", "Cancelled"],
     }.get(current, []):
@@ -1204,7 +1323,7 @@ def deployment_status(
     team = db.scalar(
         select(Record).where(Record.id == r.data["teamId"]).with_for_update()
     )
-    r.data = {**r.data, "status": status}
+    r.data = {**r.data, "status": status, "statusHistory": [*r.data.get("statusHistory", []), {"status": status, "by": account.id, "at": now()}]}
     r.updated = now()
     team.data = {
         **team.data,

@@ -1,4 +1,5 @@
 import RequestError from "./components/RequestError";
+import IncidentResponse from "./components/IncidentResponse";
 import { locale } from "./i18n";
 import Basemap, { type BasemapStatus } from "./components/Basemap";
 import {
@@ -365,6 +366,36 @@ function ReportCard({
           {t("Review")}: {row.verificationNote} · {row.verifiedBy}
         </p>
       )}
+      {row.responseStatus && (
+        <p>
+          {t("Response status")}: {t(row.responseStatus)}
+        </p>
+      )}
+      {row.clarifications?.map((c: any, i: number) => (
+        <p key={i}>
+          {t("Citizen clarification")}: {c.note}
+        </p>
+      ))}
+      {account?.role === "citizen" &&
+        row.status === "Clarification Requested" && (
+          <div>
+            <Field label="Clarification response">
+              <Input value={note} onChange={(e) => setNote(e.target.value)} />
+            </Field>
+            <Button
+              disabled={job.busy || note.trim().length < 5}
+              onClick={() =>
+                job.run(async () => {
+                  await post(`/api/reports/${row.id}/clarification`, { note });
+                  setNote("");
+                  await refresh();
+                })
+              }
+            >
+              {t("Send clarification")}
+            </Button>
+          </div>
+        )}
       <Sample row={row} />
       <Button
         variant="outline"
@@ -417,7 +448,7 @@ function ReportCard({
             <div className="mt-3 flex flex-wrap gap-2">
               {(row.status === "Verified"
                 ? ["Resolved"]
-                : ["Verified", "Rejected"]
+                : ["Verified", "Rejected", "Clarification Requested"]
               ).map((status) => (
                 <Button
                   key={status}
@@ -438,21 +469,24 @@ function ReportCard({
                       ? "Verify"
                       : status === "Rejected"
                         ? "Reject"
-                        : "Resolve",
+                        : status === "Clarification Requested"
+                          ? "Request clarification"
+                          : "Resolve",
                   )}
                 </Button>
               ))}
             </div>
           </div>
         )}
-      {account?.role !== "citizen" && row.status === "Verified" && (
-        <Link
-          className="mt-3 block text-blue-700 underline"
-          to={`/response?reportId=${encodeURIComponent(row.id)}`}
-        >
-          {t("Plan response")}
-        </Link>
-      )}
+      {account?.role !== "citizen" &&
+        !["Rejected", "Resolved"].includes(row.status) && (
+          <Link
+            className="mt-3 block text-blue-700 underline"
+            to={`/response?reportId=${encodeURIComponent(row.id)}`}
+          >
+            {t("Plan response")}
+          </Link>
+        )}
       <Result job={job} />
     </Card>
   );
@@ -463,6 +497,7 @@ export function Reports() {
   const job = useAction();
   const [files, setFiles] = useState<File[]>([]),
     [gps, setGps] = useState({ lat: "", lng: "" }),
+    [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null),
     [message, setMessage] = useState(""),
     [syncError, setSyncError] = useState("");
   useEffect(() => {
@@ -486,6 +521,7 @@ export function Reports() {
         location: values.location,
         lat: Number(values.lat),
         lng: Number(values.lng),
+        gpsAccuracyM: gpsAccuracy,
         severity: values.severity,
         description: values.description,
       };
@@ -507,6 +543,7 @@ export function Reports() {
       form.reset();
       setFiles([]);
       setGps({ lat: "", lng: "" });
+      setGpsAccuracy(null);
       if (online) {
         try {
           await syncQueue(account!.id);
@@ -522,6 +559,7 @@ export function Reports() {
   return (
     <>
       <Heading title="Reports" sub={t("Remember to stay safe")} />
+      <p className="mb-4 text-sm">{t("Emergency contact notice")}</p>
       <Card className="mb-6 p-5">
         <h2 className="mb-4 text-lg font-bold">{t("New incident report")}</h2>
         <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
@@ -566,7 +604,10 @@ export function Reports() {
               min={-90}
               max={90}
               value={gps.lat}
-              onChange={(e) => setGps({ ...gps, lat: e.target.value })}
+              onChange={(e) => {
+                setGps({ ...gps, lat: e.target.value });
+                setGpsAccuracy(null);
+              }}
             />
           </Field>
           <Field label="Longitude">
@@ -578,7 +619,10 @@ export function Reports() {
               min={-180}
               max={180}
               value={gps.lng}
-              onChange={(e) => setGps({ ...gps, lng: e.target.value })}
+              onChange={(e) => {
+                setGps({ ...gps, lng: e.target.value });
+                setGpsAccuracy(null);
+              }}
             />
           </Field>
           <Button
@@ -594,6 +638,7 @@ export function Reports() {
                     }
                     navigator.geolocation.getCurrentPosition(
                       (p) => {
+                        setGpsAccuracy(p.coords.accuracy);
                         setGps({
                           lat: p.coords.latitude.toFixed(6),
                           lng: p.coords.longitude.toFixed(6),
@@ -758,7 +803,12 @@ const fieldDefs: Record<string, FieldDef[]> = {
     },
     { key: "description", label: "Description" },
   ],
-  teams: [{ key: "name", label: "Name", required: true }],
+  teams: [
+    { key: "name", label: "Name", required: true },
+    ...["coverageWest", "coverageSouth", "coverageEast", "coverageNorth"].map(
+      (key) => ({ key, label: key, type: "number" }),
+    ),
+  ],
   alerts: [
     { key: "name", label: "Name", required: true },
     {
@@ -1758,7 +1808,9 @@ export function Alerts() {
                       ? "Approve"
                       : r.status === "Approved"
                         ? "Publish"
-                        : "Resolve",
+                        : status === "Clarification Requested"
+                          ? "Request clarification"
+                          : "Resolve",
                   )}
                 </Button>
               )}
@@ -1770,6 +1822,16 @@ export function Alerts() {
 }
 
 export function ResponsePage() {
+  const [params] = useSearchParams();
+  const reportId = params.get("reportId");
+  return reportId ? (
+    <IncidentResponse key={reportId} reportId={reportId} />
+  ) : (
+    <GeneralResponsePage />
+  );
+}
+
+function GeneralResponsePage() {
   const { t } = useApp();
   const [params] = useSearchParams();
   const reportId = params.get("reportId") || "";
@@ -1957,6 +2019,7 @@ export function ResponsePage() {
               {(
                 (
                   {
+                    Assigned: ["En Route", "Cancelled"],
                     "En Route": ["On Site", "Cancelled"],
                     "On Site": ["Completed", "Cancelled"],
                   } as Record<string, string[]>

@@ -16,7 +16,7 @@ import cv2
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 from fastapi.testclient import TestClient
-from sqlalchemy import select, text
+from sqlalchemy import select, text, func
 from api.main import app
 from api.db import Session, User, Record, engine, migrate
 from api.security import hash_password
@@ -378,6 +378,7 @@ def test_atomic_deployment_and_transitions(actors):
         ).status_code
         == 409
     )
+    assert c.post(f"/api/deployments/{id}/status", json={"status": "En Route"}).status_code == 200
     assert (
         c.post(f"/api/deployments/{id}/status", json={"status": "On Site"}).status_code
         == 200
@@ -858,7 +859,7 @@ def test_verified_incident_to_completed_response_preserves_context(actors):
     incident = report(actors['citizen'])
     rid = incident['id']
     payload = dict(teamId='demo-team-0', locationId='demo-location-0', reportId=rid)
-    assert c.get(f'/api/response/reports/{rid}').status_code == 409
+    assert c.get(f'/api/response/reports/{rid}').status_code == 200
     assert c.post('/api/deployments', json={**payload, 'confirmLocationAssociation': True}).status_code == 409
     review = c.patch(f'/api/reports/{rid}/verify', json={'status':'Verified', 'note':'Confirmed incident for response planning'}).json()
     planned = c.get(f'/api/response/reports/{rid}').json()
@@ -871,7 +872,7 @@ def test_verified_incident_to_completed_response_preserves_context(actors):
     data = deployed.json()
     assert data['reportId'] == rid and data['reportCoordinates'] == {'lat':incident['lat'],'lng':incident['lng']}
     assert data['reportReviewHistory'] == review['reviewHistory']
-    for status in ['On Site','Completed']:
+    for status in ['En Route','On Site','Completed']:
         result = c.post(f"/api/deployments/{data['id']}/status", json={'status':status})
         assert result.status_code == 200 and result.json()['reportId'] == rid
     audit = actors['admin'].get('/api/admin/system').json()['audit']
@@ -903,3 +904,84 @@ def test_invalid_local_password_change_leaves_account_untouched(actors, monkeypa
         manage.main()
     assert actors['citizen'].get('/api/auth/me').status_code == 200
     assert TestClient(app).post('/api/auth/login',json={'email':'citizen@example.test','password':PASSWORD}).status_code == 200
+
+
+def dispatch_payload(**changes):
+    return {'teamId':'demo-team-0','lat':25.297,'lng':91.582,
+            'destinationConfirmed':True,'teamConfirmed':True,
+            'note':'Confirmed destination and responding team',**changes}
+
+
+def test_report_first_dispatch_without_monitoring_records(actors):
+    c=actors['official']; item=report(actors['citizen'])
+    with Session.begin() as db:
+        db.execute(text("DELETE FROM records WHERE kind='locations'"))
+    response=c.post(f"/api/reports/{item['id']}/dispatch",json=dispatch_payload())
+    assert response.status_code==201,response.text
+    d=response.json()
+    assert d['status']=='Assigned' and 'locationId' not in d
+    assert (d['lat'],d['lng'])==(item['lat'],item['lng'])
+    assert d['verificationStatusAtDispatch']=='Verified'
+    assert c.get(f"/api/response/reports/{item['id']}").json()['status']=='Verified'
+    assert actors['citizen'].get('/api/records/reports').json()['items'][0]['responseStatus']=='Assigned'
+    assert c.post(f"/api/deployments/{d['id']}/status",json={'status':'On Site'}).status_code==409
+    for status in ['En Route','On Site','Completed']:
+        assert c.post(f"/api/deployments/{d['id']}/status",json={'status':status}).status_code==200
+    assert actors['citizen'].get('/api/records/reports').json()['items'][0]['responseStatus']=='Completed'
+    actions=[a['action'] for a in actors['admin'].get('/api/admin/system').json()['audit']]
+    assert 'report:Verified' in actions and 'deployment:create' in actions and 'deployment:Completed' in actions
+
+
+def test_dispatch_confirmations_corrections_coverage_and_permissions(actors):
+    c=actors['official'];rid=report(actors['citizen'])['id'];url=f'/api/reports/{rid}/dispatch'
+    assert actors['citizen'].post(url,json=dispatch_payload()).status_code==403
+    for changes in [{'destinationConfirmed':False},{'teamConfirmed':False},{'teamConfirmed':1}, {'lat':None},{'lat':91}, {'lat':25.4},{'note':'   '}]:
+        assert c.post(url,json=dispatch_payload(**changes)).status_code==422
+    with Session.begin() as db:
+        team=db.get(Record,'demo-team-0');team.data={**team.data,'coverageWest':90,'coverageEast':91,'coverageSouth':25,'coverageNorth':26}
+    assert c.post(url,json=dispatch_payload()).status_code==409
+    assert c.get(f'/api/response/reports/{rid}').json()['status']=='Awaiting Verification'
+    with Session.begin() as db:
+        team=db.get(Record,'demo-team-0');team.data={**team.data,'coverageEast':92}
+    d=c.post(url,json=dispatch_payload(lat=25.4,correctionReason='Reporter confirmed the corrected access point')).json()
+    assert d['lat']==25.4 and d['reportCoordinates']['lat']==25.297 and d['correctionReason']
+    assert actors['citizen'].post(f"/api/deployments/{d['id']}/status",json={'status':'En Route'}).status_code==403
+
+
+def test_urgent_dispatch_preserves_unverified_status_and_clarification(actors):
+    c=actors['official'];rid=report(actors['citizen'])['id']
+    assert c.patch(f'/api/reports/{rid}/verify',json={'status':'Clarification Requested','note':'Please confirm which access road is blocked'}).status_code==200
+    assert actors['other'].post(f'/api/reports/{rid}/clarification',json={'note':'Another person cannot edit this report'}).status_code==404
+    assert actors['citizen'].post(f'/api/reports/{rid}/clarification',json={'note':'The access road is beside the bridge'}).status_code==200
+    assert c.post(f'/api/reports/{rid}/dispatch',json=dispatch_payload(mode='urgent-unverified')).status_code==422
+    d=c.post(f'/api/reports/{rid}/dispatch',json=dispatch_payload(mode='urgent-unverified',urgentReason='Immediate investigation requested due to possible danger')).json()
+    r=c.get(f'/api/response/reports/{rid}').json()
+    assert r['status']=='Awaiting Verification' and d['urgentUnverified']
+    assert r['clarifications'][0]['note']=='The access road is beside the bridge'
+    assert c.post(f'/api/reports/{rid}/dispatch',json=dispatch_payload()).status_code==409
+
+
+def test_concurrent_report_dispatch_conflict_does_not_verify_loser(actors):
+    c=actors['official'];r1=report(actors['citizen'],'dispatch-one')['id'];r2=report(actors['citizen'],'dispatch-two')['id']
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results=list(pool.map(lambda rid:(rid,c.post(f'/api/reports/{rid}/dispatch',json=dispatch_payload())),[r1,r2]))
+    assert sorted(r.status_code for _,r in results)==[201,409]
+    loser=next(rid for rid,r in results if r.status_code==409)
+    saved=c.get(f'/api/response/reports/{loser}').json()
+    assert saved['status']=='Awaiting Verification' and not saved.get('reviewHistory')
+    assert len(saved['possibleDuplicates'])==1
+
+
+def test_dispatch_rolls_back_verification_and_reservation_on_failure(actors,monkeypatch):
+    import api.main as main
+    rid=report(actors['citizen'])['id'];original=main.audit
+    def fail(db,account,action,target):
+        if action=='deployment:create': raise RuntimeError('Simulated transaction failure')
+        return original(db,account,action,target)
+    monkeypatch.setattr(main,'audit',fail)
+    with pytest.raises(RuntimeError,match='Simulated transaction failure'):
+        actors['official'].post(f'/api/reports/{rid}/dispatch',json=dispatch_payload())
+    with Session() as db:
+        assert db.get(Record,rid).data['status']=='Awaiting Verification'
+        assert db.get(Record,'demo-team-0').data['status']=='Available'
+        assert db.scalar(select(func.count()).select_from(Record).where(Record.kind=='deployments'))==0
