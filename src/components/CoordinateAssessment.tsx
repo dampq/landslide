@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { MapContainer, CircleMarker, Popup, useMapEvents } from "react-leaflet";
+import { useMapEvents } from "react-leaflet";
 import { useApp } from "../App";
 import { post } from "../lib";
 import { Card, Input, Button } from "./ui";
-import Basemap from "./Basemap";
+import LocationPicker from "./LocationPicker";
 
 export function AssessmentPicker({
   onPick,
@@ -13,7 +13,7 @@ export function AssessmentPicker({
 }) {
   useMapEvents({
     click(e) {
-      onPick(e.latlng.lat, e.latlng.lng);
+      onPick(e.latlng.lat, e.latlng.wrap().lng);
     },
   });
   return null;
@@ -27,9 +27,7 @@ export default function CoordinateAssessment({ version }: { version: string }) {
   const [preview, setPreview] = useState<any>(null),
     [result, setResult] = useState<any>(null);
   const [error, setError] = useState(""),
-    [busy, setBusy] = useState(false),
-    [mapStatus, setMapStatus] = useState<any>(null);
-  const mapCallback = useCallback((s: any) => setMapStatus(s), []);
+    [busy, setBusy] = useState(false);
   useEffect(() => {
     setPreview(null);
     setResult(null);
@@ -96,30 +94,7 @@ export default function CoordinateAssessment({ version }: { version: string }) {
           />
         </label>
       </div>
-      <details>
-        <summary>{t("Select assessment coordinates on map")}</summary>
-        <div style={{ height: 280 }}>
-          <MapContainer
-            center={valid ? [Number(lat), Number(lng)] : [25.9, 92.5]}
-            zoom={6}
-            scrollWheelZoom={false}
-            style={{ height: "100%" }}
-          >
-            <Basemap provider="auto" onStatus={mapCallback} />
-            <AssessmentPicker
-              onPick={(a, b) => {
-                if (!busy) change(a.toFixed(6), b.toFixed(6));
-              }}
-            />
-            {valid && (
-              <CircleMarker center={[Number(lat), Number(lng)]} radius={7}>
-                <Popup>{t("Assessment coordinates")}</Popup>
-              </CircleMarker>
-            )}
-          </MapContainer>
-        </div>
-        {mapStatus && <p>{t(mapStatus.message, mapStatus.params)}</p>}
-      </details>
+      <LocationPicker value={{ lat, lng }} disabled={busy} onChange={change} />
       <Button
         disabled={busy || !valid}
         onClick={() =>

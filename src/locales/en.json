@@ -443,5 +443,16 @@
   "Climate normal": "Climate normal",
   "Elevation reference surface": "Elevation reference surface",
   "Derived terrain": "Derived terrain",
-  "Grid resolution (CRS units)": "Grid resolution (CRS units)"
+  "Grid resolution (CRS units)": "Grid resolution (CRS units)",
+  "Select coordinates on map": "Select coordinates on map",
+  "Select saved location on map": "Select saved location on map",
+  "No saved locations to select on map": "No saved locations to select on map. Create a monitoring location first.",
+  "Saved location map picker": "Saved location map picker",
+  "Coordinate map picker": "Coordinate map picker",
+  "Saved location map guidance": "Click a saved location marker, then confirm. This selects that record; it does not create a location or choose the nearest record.",
+  "Coordinate map guidance": "Click to place a pin, then use the selected coordinates. Enter the location description separately. Map selection does not provide measured GPS accuracy.",
+  "Selected map position": "Selected map position",
+  "Use selected saved location": "Use selected saved location",
+  "Use selected coordinates": "Use selected coordinates",
+  "Cancel map selection": "Cancel map selection"
 }

@@ -443,5 +443,16 @@
   "Climate normal": "जलवायु सामान्य",
   "Elevation reference surface": "ऊँचाई संदर्भ सतह",
   "Derived terrain": "गणना किया गया भूभाग",
-  "Grid resolution (CRS units)": "ग्रिड विभेदन (CRS इकाइयाँ)"
+  "Grid resolution (CRS units)": "ग्रिड विभेदन (CRS इकाइयाँ)",
+  "Select coordinates on map": "मानचित्र पर निर्देशांक चुनें",
+  "Select saved location on map": "मानचित्र पर सहेजा स्थान चुनें",
+  "No saved locations to select on map": "मानचित्र पर चुनने के लिए कोई सहेजा स्थान नहीं है। पहले निगरानी स्थान बनाएँ।",
+  "Saved location map picker": "सहेजे स्थान का मानचित्र चयन",
+  "Coordinate map picker": "निर्देशांक मानचित्र चयन",
+  "Saved location map guidance": "सहेजे स्थान के चिह्न पर क्लिक कर पुष्टि करें। इससे वही रिकॉर्ड चुना जाता है; नया स्थान या निकटतम रिकॉर्ड स्वतः नहीं चुना जाता।",
+  "Coordinate map guidance": "पिन रखने के लिए क्लिक करें और चुने निर्देशांक उपयोग करें। स्थान विवरण अलग से लिखें। मानचित्र चयन से मापी गई GPS सटीकता नहीं मिलती।",
+  "Selected map position": "मानचित्र पर चुना स्थान",
+  "Use selected saved location": "चुना सहेजा स्थान उपयोग करें",
+  "Use selected coordinates": "चुने निर्देशांक उपयोग करें",
+  "Cancel map selection": "मानचित्र चयन रद्द करें"
 }

@@ -1342,3 +1342,322 @@ test("map assessment selection inspects data explicitly and reports unavailable 
     page.getByRole("button", { name: "Run inspected assessment", exact: true }),
   ).toHaveCount(0);
 });
+
+test("citizen map picks require confirmation, cancel preserves GPS and submitted coordinates persist", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    geolocation: { latitude: 25.297, longitude: 91.582, accuracy: 12 },
+    permissions: ["geolocation"],
+  });
+  const page = await context.newPage();
+  await login(page, "citizen");
+  await page.getByRole("link", { name: "Reports", exact: true }).click();
+  await page.getByRole("button", { name: "Use my GPS", exact: true }).click();
+  await expect(page.getByLabel("Latitude", { exact: true })).toHaveValue(
+    "25.297000",
+  );
+  await page
+    .getByRole("button", { name: "Select coordinates on map", exact: true })
+    .click();
+  let picker = page.getByRole("group", {
+    name: "Coordinate map picker",
+    exact: true,
+  });
+  await picker
+    .locator(".leaflet-container")
+    .click({ position: { x: 210, y: 110 } });
+  await expect(page.getByLabel("Latitude", { exact: true })).toHaveValue(
+    "25.297000",
+  );
+  await picker
+    .getByRole("button", { name: "Cancel map selection", exact: true })
+    .click();
+  await expect(page.getByLabel("Longitude", { exact: true })).toHaveValue(
+    "91.582000",
+  );
+  await page
+    .getByRole("button", { name: "Select coordinates on map", exact: true })
+    .click();
+  picker = page.getByRole("group", {
+    name: "Coordinate map picker",
+    exact: true,
+  });
+  await picker
+    .locator(".leaflet-container")
+    .click({ position: { x: 230, y: 120 } });
+  await picker
+    .getByRole("button", { name: "Use selected coordinates", exact: true })
+    .click();
+  const lat = Number(
+    await page.getByLabel("Latitude", { exact: true }).inputValue(),
+  );
+  const lng = Number(
+    await page.getByLabel("Longitude", { exact: true }).inputValue(),
+  );
+  expect(lat).not.toBe(25.297);
+  await page
+    .getByLabel("Location", { exact: true })
+    .fill("Map chosen incident");
+  await page
+    .getByLabel("Description", { exact: true })
+    .fill("Safe browser demonstration using a confirmed map pin.");
+  await page.getByLabel("Confirm observations").check();
+  const response = page.waitForResponse(
+    (r) =>
+      r.url().endsWith("/api/reports") &&
+      r.request().method() === "POST" &&
+      r.request().postDataJSON().location === "Map chosen incident",
+  );
+  await page
+    .getByRole("button", { name: "Submit report", exact: true })
+    .click();
+  const saved = await (await response).json();
+  expect(saved.lat).toBe(lat);
+  expect(saved.lng).toBe(lng);
+  expect(saved.gpsAccuracyM).toBeNull();
+  await context.close();
+});
+
+test("coordinate record forms share the picker and preserve edits and other fields", async ({
+  page,
+}) => {
+  await login(page, "official");
+  await page.getByRole("link", { name: "Monitoring", exact: true }).click();
+  await page.getByRole("button", { name: "Create", exact: true }).click();
+  await page
+    .getByLabel("Name", { exact: true })
+    .fill("Map picker monitoring point");
+  await page.getByLabel("District", { exact: true }).fill("Test district");
+  await page.getByLabel("State", { exact: true }).fill("Meghalaya");
+  await page
+    .getByRole("button", { name: "Select coordinates on map", exact: true })
+    .click();
+  let picker = page.getByRole("group", {
+    name: "Coordinate map picker",
+    exact: true,
+  });
+  await picker
+    .locator(".leaflet-container")
+    .click({ position: { x: 200, y: 120 } });
+  await picker
+    .getByRole("button", { name: "Use selected coordinates", exact: true })
+    .click();
+  await expect(page.getByLabel("Name", { exact: true })).toHaveValue(
+    "Map picker monitoring point",
+  );
+  const lat = Number(
+    await page.getByLabel("Latitude", { exact: true }).inputValue(),
+  );
+  const created = page.waitForResponse(
+    (r) =>
+      r.url().endsWith("/api/records/locations") &&
+      r.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  const record = await (await created).json();
+  expect(record.lat).toBe(lat);
+  const card = page
+    .locator(".record-grid .rounded-2xl")
+    .filter({
+      has: page.getByText("Map picker monitoring point", { exact: true }),
+    })
+    .last();
+  await card.getByRole("button", { name: "Review", exact: true }).click();
+  await expect(page.getByLabel("Latitude", { exact: true })).toHaveValue(
+    String(lat),
+  );
+  await page
+    .getByRole("button", { name: "Select coordinates on map", exact: true })
+    .click();
+  picker = page.getByRole("group", {
+    name: "Coordinate map picker",
+    exact: true,
+  });
+  await picker
+    .locator(".leaflet-container")
+    .click({ position: { x: 240, y: 110 } });
+  await picker
+    .getByRole("button", { name: "Cancel map selection", exact: true })
+    .click();
+  await expect(page.getByLabel("Latitude", { exact: true })).toHaveValue(
+    String(lat),
+  );
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  for (const tab of ["Roads", "Villages & population", "Infrastructure"]) {
+    await page.getByRole("button", { name: tab, exact: true }).click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
+    await expect(
+      page.getByRole("button", {
+        name: "Select coordinates on map",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Close", exact: true }).click();
+  }
+  await page
+    .getByRole("link", { name: "History & imagery", exact: true })
+    .click();
+  for (const tab of ["History", "Satellite imagery"]) {
+    // Default history tab is already active; satellite is selected explicitly below when present.
+    if (tab === "Satellite imagery")
+      await page
+        .getByRole("button", { name: "Satellite imagery", exact: true })
+        .click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
+    await expect(
+      page.getByRole("button", {
+        name: "Select coordinates on map",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Close", exact: true }).click();
+  }
+});
+
+test("saved-location map selection uses an existing record and never creates a nearest location", async ({
+  page,
+}) => {
+  await login(page, "official");
+  const all = (await (await page.request.get("/api/records/locations")).json())
+    .items;
+  await page.getByRole("link", { name: "Weather", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Select saved location on map", exact: true })
+    .click();
+  const picker = page.getByRole("group", {
+    name: "Saved location map picker",
+    exact: true,
+  });
+  await picker
+    .locator(".leaflet-container")
+    .click({ position: { x: 180, y: 120 } });
+  await expect(
+    picker.getByRole("button", {
+      name: "Use selected saved location",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  await picker.locator(".leaflet-interactive").first().click();
+  await expect(page.getByLabel("Location", { exact: true })).toHaveValue("");
+  await picker
+    .getByRole("button", { name: "Use selected saved location", exact: true })
+    .click();
+  await expect(page.getByLabel("Location", { exact: true })).toHaveValue(
+    all[0].id,
+  );
+  expect(
+    (await (await page.request.get("/api/records/locations")).json()).total,
+  ).toBe(all.length);
+});
+
+test("shared picker updates assessment coordinates and records response corrections with confirmation", async ({
+  page,
+}) => {
+  await login(page, "official");
+  await page
+    .getByRole("link", { name: "Model integration", exact: true })
+    .click();
+  let extractions = 0;
+  await page.route("**/api/assessment/features", (route) => {
+    extractions++;
+    return route.fulfill({
+      status: 503,
+      json: { detail: "Explicit test unavailable state" },
+    });
+  });
+  await page
+    .getByRole("button", { name: "Select coordinates on map", exact: true })
+    .click();
+  let picker = page.getByRole("group", {
+    name: "Coordinate map picker",
+    exact: true,
+  });
+  await picker
+    .locator(".leaflet-container")
+    .click({ position: { x: 220, y: 120 } });
+  await expect(
+    page.getByLabel("Assessment latitude", { exact: true }),
+  ).toHaveValue("");
+  await picker
+    .getByRole("button", { name: "Use selected coordinates", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Assessment latitude", { exact: true }),
+  ).not.toHaveValue("");
+  expect(extractions).toBe(0);
+  const team = await (
+    await page.request.post("/api/records/teams", {
+      data: {
+        name: "Map correction team",
+        source: "Synthetic browser test",
+        simulated: true,
+      },
+    })
+  ).json();
+  const item = await (
+    await page.request.post("/api/reports", {
+      data: {
+        clientId: "map-dispatch-correction",
+        incident: "Other",
+        location: "Map correction incident",
+        lat: 25.297,
+        lng: 91.582,
+        severity: "Low",
+        description:
+          "Presentation incident with a deliberate map-based correction.",
+      },
+    })
+  ).json();
+  await page.goto(`/response?reportId=${item.id}`);
+  await page
+    .getByLabel("Review note", { exact: true })
+    .fill("Review note must survive choosing a pin");
+  await page.getByLabel("Team", { exact: true }).selectOption(team.id);
+  await page.getByLabel("I confirm this destination", { exact: true }).check();
+  await page.getByLabel("I confirm this team", { exact: true }).check();
+  await page
+    .getByRole("button", { name: "Select coordinates on map", exact: true })
+    .click();
+  picker = page.getByRole("group", {
+    name: "Coordinate map picker",
+    exact: true,
+  });
+  await picker
+    .locator(".leaflet-container")
+    .click({ position: { x: 230, y: 120 } });
+  await picker
+    .getByRole("button", { name: "Use selected coordinates", exact: true })
+    .click();
+  await expect(page.getByLabel("Review note", { exact: true })).toHaveValue(
+    "Review note must survive choosing a pin",
+  );
+  await expect(
+    page.getByLabel("I confirm this destination", { exact: true }),
+  ).not.toBeChecked();
+  await expect(
+    page.getByLabel("I confirm this team", { exact: true }),
+  ).not.toBeChecked();
+  await expect(
+    page.getByRole("button", { name: "Verify and assign", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByLabel("Destination correction reason", { exact: true })
+    .fill("Reporter confirmed the selected access point");
+  await page.getByLabel("I confirm this destination", { exact: true }).check();
+  await page.getByLabel("I confirm this team", { exact: true }).check();
+  const assigned = page.waitForResponse(
+    (r) =>
+      r.url().endsWith(`/api/reports/${item.id}/dispatch`) &&
+      r.request().method() === "POST",
+  );
+  await page
+    .getByRole("button", { name: "Verify and assign", exact: true })
+    .click();
+  const d = await (await assigned).json();
+  expect(d.reportCoordinates.lat).toBe(item.lat);
+  expect(d.lat).not.toBe(item.lat);
+  expect(d.correctionReason).toBe(
+    "Reporter confirmed the selected access point",
+  );
+});

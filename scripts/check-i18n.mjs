@@ -5,6 +5,7 @@ const files = [
   "src/Portal.tsx",
   "src/components/IncidentResponse.tsx",
   "src/components/CoordinateAssessment.tsx",
+  "src/components/LocationPicker.tsx",
   "src/components/Basemap.tsx",
   "src/components/ReferenceMap.tsx",
   "src/components/RequestError.tsx",

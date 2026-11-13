@@ -1,23 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { MapContainer, CircleMarker, Popup, useMapEvents } from "react-leaflet";
 import { useApp } from "../App";
 import { useData, post, patch, time } from "../lib";
 import { Card, Button, Input, Select } from "./ui";
-import Basemap from "./Basemap";
-
-function DestinationPin({
-  onPick,
-}: {
-  onPick: (lat: number, lng: number) => void;
-}) {
-  useMapEvents({
-    click(e) {
-      onPick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
+import LocationPicker from "./LocationPicker";
 
 export default function IncidentResponse({ reportId }: { reportId: string }) {
   const { t } = useApp();
@@ -39,7 +25,6 @@ export default function IncidentResponse({ reportId }: { reportId: string }) {
     [teamConfirmed, setTeamConfirmed] = useState(false);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  const ignoreMapStatus = useCallback(() => {}, []);
   useEffect(() => {
     if (report.data?.id) {
       setLat(String(report.data.lat));
@@ -241,27 +226,11 @@ export default function IncidentResponse({ reportId }: { reportId: string }) {
                   />
                 </label>
               </div>
-              {valid && (
-                <div style={{ height: 240 }}>
-                  <MapContainer
-                    key={r.id}
-                    center={[r.lat, r.lng]}
-                    zoom={7}
-                    style={{ height: "100%" }}
-                  >
-                    <Basemap provider="reference" onStatus={ignoreMapStatus} />
-                    <CircleMarker
-                      center={[Number(lat), Number(lng)]}
-                      radius={8}
-                    >
-                      <Popup>{t("Dispatch destination")}</Popup>
-                    </CircleMarker>
-                    <DestinationPin
-                      onPick={(a, b) => setDestination(String(a), String(b))}
-                    />
-                  </MapContainer>
-                </div>
-              )}
+              <LocationPicker
+                value={{ lat, lng }}
+                disabled={busy}
+                onChange={setDestination}
+              />
               {corrected && (
                 <label className="block">
                   {t("Destination correction reason")}

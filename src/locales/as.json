@@ -443,5 +443,16 @@
   "Climate normal": "জলবায়ুৰ স্বাভাৱিক মান",
   "Elevation reference surface": "উচ্চতাৰ প্ৰসংগ পৃষ্ঠ",
   "Derived terrain": "গণনা কৰা ভূভাগ",
-  "Grid resolution (CRS units)": "গ্ৰিড বিভেদন (CRS একক)"
+  "Grid resolution (CRS units)": "গ্ৰিড বিভেদন (CRS একক)",
+  "Select coordinates on map": "মানচিত্ৰত স্থানাংক বাছক",
+  "Select saved location on map": "মানচিত্ৰত সংৰক্ষিত স্থান বাছক",
+  "No saved locations to select on map": "মানচিত্ৰত বাছিবলৈ কোনো সংৰক্ষিত স্থান নাই। প্ৰথমে নিৰীক্ষণ স্থান সৃষ্টি কৰক।",
+  "Saved location map picker": "সংৰক্ষিত স্থানৰ মানচিত্ৰ বাছনি",
+  "Coordinate map picker": "স্থানাংকৰ মানচিত্ৰ বাছনি",
+  "Saved location map guidance": "সংৰক্ষিত স্থানৰ চিহ্নত ক্লিক কৰি নিশ্চিত কৰক। ইয়াৰ দ্বাৰা সেই ৰেকৰ্ড বাছনি হয়; নতুন স্থান সৃষ্টি বা ওচৰৰ ৰেকৰ্ড স্বয়ংক্ৰিয়ভাৱে বাছনি নহয়।",
+  "Coordinate map guidance": "পিন বহুৱাবলৈ ক্লিক কৰি নিৰ্বাচিত স্থানাংক ব্যৱহাৰ কৰক। স্থানৰ বিৱৰণ পৃথকে লিখক। মানচিত্ৰ বাছনিয়ে জোখা GPS সঠিকতা নিদিয়ে।",
+  "Selected map position": "মানচিত্ৰত নিৰ্বাচিত স্থান",
+  "Use selected saved location": "নিৰ্বাচিত সংৰক্ষিত স্থান ব্যৱহাৰ কৰক",
+  "Use selected coordinates": "নিৰ্বাচিত স্থানাংক ব্যৱহাৰ কৰক",
+  "Cancel map selection": "মানচিত্ৰৰ বাছনি বাতিল কৰক"
 }

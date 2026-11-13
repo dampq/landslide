@@ -44,3 +44,7 @@ Final milestone outcome: `20261113T113333Z/outcomes.json` confirms 42 Python tes
 ## Coordinate extraction integration
 
 `20261113T164942Z/outcomes.json` records 58 Python and 27 browser tests passed with verified source/log hashes. Eight Python cases are synthetic raster tests. Real-data acceptance is separately gated by `npm run prepare:rasters` in the Codespace holding the large archive; it is explicitly unrun here. `20261113T164546Z` retains the earlier failed browser selector run. The small extraction handoff is pinned by `model-handoff/extraction-sha256.txt`; the large rasters remain private local files and are not committed. See `../AUTOMATIC_ASSESSMENT.md`.
+
+## Shared location-picker run
+
+`20261113T172700Z/outcomes.json` records 58 passed Python and 31 passed browser tests, with no unexpected/skipped browser outcomes and all command exit codes zero. Source/log hashes were verified. It covers confirm/cancel semantics across raw coordinate forms and explicit existing-record map selection. See `../MAP_PICKERS.md`. Real raster acceptance remains separate from synthetic raster tests.

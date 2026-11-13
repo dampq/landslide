@@ -1,5 +1,6 @@
 import RequestError from "./components/RequestError";
 import IncidentResponse from "./components/IncidentResponse";
+import LocationPicker from "./components/LocationPicker";
 import CoordinateAssessment, {
   AssessmentPicker,
 } from "./components/CoordinateAssessment";
@@ -628,6 +629,16 @@ export function Reports() {
               }}
             />
           </Field>
+          <div className="md:col-span-2">
+            <LocationPicker
+              value={gps}
+              disabled={job.busy}
+              onChange={(lat, lng) => {
+                setGps({ lat, lng });
+                setGpsAccuracy(null);
+              }}
+            />
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -857,6 +868,14 @@ function RecordForm({
   const { t } = useApp();
   const job = useAction();
   const [simulated, setSimulated] = useState(editing?.simulated ?? true);
+  const [coords, setCoords] = useState({
+    lat: String(editing?.lat ?? ""),
+    lng: String(editing?.lng ?? ""),
+  });
+  const [locationId, setLocationId] = useState(editing?.locationId || "");
+  const hasCoordinates =
+    fieldDefs[kind].some((f) => f.key === "lat") &&
+    fieldDefs[kind].some((f) => f.key === "lng");
   const locs = useData("/api/records/locations");
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -873,7 +892,11 @@ function RecordForm({
       else await post("/api/records/" + kind, data);
       await refresh();
       if (onClose) onClose();
-      else form.reset();
+      else {
+        form.reset();
+        setCoords({ lat: "", lng: "" });
+        setLocationId("");
+      }
     });
   }
   return (
@@ -903,14 +926,46 @@ function RecordForm({
                 step={f.type === "number" ? "any" : undefined}
                 maxLength={2000}
                 required={f.required}
-                defaultValue={editing?.[f.key] ?? ""}
+                defaultValue={
+                  f.key === "lat" || f.key === "lng"
+                    ? undefined
+                    : (editing?.[f.key] ?? "")
+                }
+                value={
+                  f.key === "lat"
+                    ? coords.lat
+                    : f.key === "lng"
+                      ? coords.lng
+                      : undefined
+                }
+                onChange={
+                  f.key === "lat"
+                    ? (e) => setCoords({ ...coords, lat: e.target.value })
+                    : f.key === "lng"
+                      ? (e) => setCoords({ ...coords, lng: e.target.value })
+                      : undefined
+                }
               />
             )}
           </Field>
         ))}
+        {hasCoordinates && (
+          <div className="md:col-span-2">
+            <LocationPicker
+              value={coords}
+              disabled={job.busy}
+              onChange={(lat, lng) => setCoords({ lat, lng })}
+            />
+          </div>
+        )}
         {kind === "alerts" && (
           <Field label="Location">
-            <Select name="locationId" required>
+            <Select
+              name="locationId"
+              required
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value)}
+            >
               <option value="">{t("Select location")}</option>
               {locs.data?.items.map((r: Row) => (
                 <option key={r.id} value={r.id}>
@@ -919,6 +974,16 @@ function RecordForm({
               ))}
             </Select>
           </Field>
+        )}
+        {kind === "alerts" && (
+          <div className="md:col-span-2">
+            <LocationPicker
+              locations={locs.data?.items || []}
+              selectedId={locationId}
+              onSelectLocation={setLocationId}
+              disabled={job.busy}
+            />
+          </div>
         )}
         <Field label="Source">
           <Input
@@ -1377,6 +1442,12 @@ function LocationSelect({
           ))}
         </Select>
       </Field>
+      <LocationPicker
+        locations={query.data?.items || []}
+        selectedId={value}
+        onSelectLocation={onChange}
+        disabled={query.loading || !!query.error}
+      />
       <Load query={query} />
     </div>
   );
