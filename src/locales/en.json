@@ -266,8 +266,6 @@
   "No cached forecast. Refresh when online; no weather values are fabricated.": "No cached forecast. Refresh when online; no weather values are fabricated.",
   "A live forecast is cached. Confirm replacement before loading sample weather.": "A live forecast is cached. Confirm replacement before loading sample weather.",
   "Random Forest model has not been supplied by the model team": "Random Forest model has not been supplied by the model team",
-  "Model path configured; verify availability in the model portal.": "Model path configured; verify availability in the model portal.",
-  "The external Random Forest model has not been supplied. No ML probabilities are fabricated.": "The external Random Forest model has not been supplied. No ML probabilities are fabricated.",
   "Records may include labelled samples. Counts are stored records, not regional totals.": "Records may include labelled samples. Counts are stored records, not regional totals.",
   "In-app only; no external SMS is sent": "In-app only; no external SMS is sent",
   "In-app only; no external SMS is sent.": "In-app only; no external SMS is sent.",
@@ -461,5 +459,7 @@
   "Source details": "Source details",
   "Replace existing values with available suggestions": "Replace existing values with available suggestions",
   "Apply location suggestions": "Apply location suggestions",
-  "Empty fields are filled by default. Unavailable values stay unchanged. Review and save the form when ready.": "Empty fields are filled by default. Unavailable values stay unchanged. Review and save the form when ready."
+  "Empty fields are filled by default. Unavailable values stay unchanged. Review and save the form when ready.": "Empty fields are filled by default. Unavailable values stay unchanged. Review and save the form when ready.",
+  "Both supplied models are integrated: V1 is the default and V2 is experimental. At supported locations with prepared datasets, extract environmental inputs, review them, then run the selected model.": "Both supplied models are integrated: V1 is the default and V2 is experimental. At supported locations with prepared datasets, extract environmental inputs, review them, then run the selected model.",
+  "Results indicate experimental landslide susceptibility, not the probability or timing of an imminent landslide. Model assessment does not automatically publish a warning or dispatch a team.": "Results indicate experimental landslide susceptibility, not the probability or timing of an imminent landslide. Model assessment does not automatically publish a warning or dispatch a team."
 }

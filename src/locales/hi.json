@@ -266,8 +266,6 @@
   "No cached forecast. Refresh when online; no weather values are fabricated.": "कोई पूर्वानुमान सहेजा नहीं गया है। ऑनलाइन होने पर ताज़ा करें या स्पष्ट रूप से नमूना मौसम चुनें।",
   "A live forecast is cached. Confirm replacement before loading sample weather.": "लाइव पूर्वानुमान सहेजा है। नमूना मौसम लोड करने से पहले बदलाव की पुष्टि करें।",
   "Random Forest model has not been supplied by the model team": "मॉडल टीम ने Random Forest मॉडल अभी नहीं दिया है",
-  "Model path configured; verify availability in the model portal.": "मॉडल का स्थान कॉन्फ़िगर है; मॉडल पोर्टल में उपलब्धता जाँचें।",
-  "The external Random Forest model has not been supplied. No ML probabilities are fabricated.": "बाहरी Random Forest मॉडल अभी उपलब्ध नहीं है। ML संभावनाएँ बनाई नहीं जाती हैं।",
   "Records may include labelled samples. Counts are stored records, not regional totals.": "रिकॉर्ड में चिह्नित नमूने हो सकते हैं। गिनती संग्रहीत रिकॉर्ड की है, पूरे क्षेत्र की नहीं।",
   "In-app only; no external SMS is sent": "केवल ऐप में; बाहरी SMS नहीं भेजा जाता",
   "In-app only; no external SMS is sent.": "केवल ऐप में; बाहरी SMS नहीं भेजा जाता।",
@@ -461,5 +459,7 @@
   "Source details": "स्रोत का विवरण",
   "Replace existing values with available suggestions": "मौजूदा मानों को उपलब्ध सुझावों से बदलें",
   "Apply location suggestions": "स्थान संबंधी सुझाव लागू करें",
-  "Empty fields are filled by default. Unavailable values stay unchanged. Review and save the form when ready.": "डिफ़ॉल्ट रूप से खाली खाने भरे जाते हैं। अनुपलब्ध मान नहीं बदलते। जाँच के बाद फ़ॉर्म सहेजें।"
+  "Empty fields are filled by default. Unavailable values stay unchanged. Review and save the form when ready.": "डिफ़ॉल्ट रूप से खाली खाने भरे जाते हैं। अनुपलब्ध मान नहीं बदलते। जाँच के बाद फ़ॉर्म सहेजें।",
+  "Both supplied models are integrated: V1 is the default and V2 is experimental. At supported locations with prepared datasets, extract environmental inputs, review them, then run the selected model.": "दोनों दिए गए मॉडल एकीकृत हैं: V1 डिफ़ॉल्ट है और V2 प्रायोगिक है। तैयार डेटासेट वाले समर्थित स्थानों पर पर्यावरणीय इनपुट निकालें, उनकी जाँच करें, फिर चयनित मॉडल चलाएँ।",
+  "Results indicate experimental landslide susceptibility, not the probability or timing of an imminent landslide. Model assessment does not automatically publish a warning or dispatch a team.": "परिणाम प्रायोगिक भूस्खलन संवेदनशीलता दर्शाते हैं, आसन्न भूस्खलन की संभावना या समय नहीं। मॉडल आकलन अपने आप चेतावनी प्रकाशित नहीं करता या टीम नहीं भेजता।"
 }

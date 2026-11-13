@@ -266,8 +266,6 @@
   "No cached forecast. Refresh when online; no weather values are fabricated.": "পূৰ্বানুমান সংৰক্ষিত নাই। অনলাইন হ'লে সতেজ কৰক বা স্পষ্টকৈ নমুনা বতৰ বাছক।",
   "A live forecast is cached. Confirm replacement before loading sample weather.": "প্ৰত্যক্ষ পূৰ্বানুমান সংৰক্ষিত আছে। নমুনা বতৰ লোড কৰাৰ আগতে সলনিৰ নিশ্চিতি দিয়ক।",
   "Random Forest model has not been supplied by the model team": "মডেল দলে Random Forest মডেল এতিয়াও দিয়া নাই",
-  "Model path configured; verify availability in the model portal.": "মডেলৰ স্থান বিন্যস্ত আছে; মডেল প'ৰ্টেলত উপলব্ধতা পৰীক্ষা কৰক।",
-  "The external Random Forest model has not been supplied. No ML probabilities are fabricated.": "বাহ্যিক Random Forest মডেল এতিয়াও উপলব্ধ নহয়। কৃত্ৰিম ML সম্ভাৱনা দেখুওৱা নহয়।",
   "Records may include labelled samples. Counts are stored records, not regional totals.": "তথ্যত চিহ্নিত নমুনা থাকিব পাৰে। গণনা সংৰক্ষিত তথ্যৰ, সমগ্ৰ অঞ্চলৰ নহয়।",
   "In-app only; no external SMS is sent": "কেৱল এপৰ ভিতৰত; বাহ্যিক SMS পঠিওৱা নহয়",
   "In-app only; no external SMS is sent.": "কেৱল এপৰ ভিতৰত; বাহ্যিক SMS পঠিওৱা নহয়।",
@@ -461,5 +459,7 @@
   "Source details": "উৎসৰ বিৱৰণ",
   "Replace existing values with available suggestions": "বৰ্তমানৰ মানসমূহ উপলব্ধ পৰামৰ্শৰে সলনি কৰক",
   "Apply location suggestions": "স্থানৰ পৰামৰ্শ প্ৰয়োগ কৰক",
-  "Empty fields are filled by default. Unavailable values stay unchanged. Review and save the form when ready.": "সাধাৰণতে খালী ক্ষেত্ৰবোৰ পূৰণ কৰা হয়। অনুপলব্ধ মান সলনি নহয়। পৰীক্ষা কৰি প্ৰপত্ৰ সংৰক্ষণ কৰক।"
+  "Empty fields are filled by default. Unavailable values stay unchanged. Review and save the form when ready.": "সাধাৰণতে খালী ক্ষেত্ৰবোৰ পূৰণ কৰা হয়। অনুপলব্ধ মান সলনি নহয়। পৰীক্ষা কৰি প্ৰপত্ৰ সংৰক্ষণ কৰক।",
+  "Both supplied models are integrated: V1 is the default and V2 is experimental. At supported locations with prepared datasets, extract environmental inputs, review them, then run the selected model.": "দুয়োটা প্ৰদান কৰা মডেল সংযুক্ত কৰা হৈছে: V1 ডিফল্ট আৰু V2 পৰীক্ষামূলক। প্ৰস্তুত তথ্যসমষ্টি থকা সমৰ্থিত স্থানত পৰিৱেশগত ইনপুট আহৰণ কৰক, পৰীক্ষা কৰক, তাৰ পিছত নিৰ্বাচিত মডেল চলাওক।",
+  "Results indicate experimental landslide susceptibility, not the probability or timing of an imminent landslide. Model assessment does not automatically publish a warning or dispatch a team.": "ফলাফলে পৰীক্ষামূলক ভূমিস্খলন প্ৰৱণতা সূচায়, আসন্ন ভূমিস্খলনৰ সম্ভাৱনা বা সময় নহয়। মডেলৰ মূল্যায়নে স্বয়ংক্ৰিয়ভাৱে সতৰ্কবাণী প্ৰকাশ নকৰে বা দল প্ৰেৰণ নকৰে।"
 }

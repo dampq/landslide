@@ -291,9 +291,12 @@ export function Dashboard() {
           <h2 className="font-bold">{t("Model integration")}</h2>
           <p className="mt-3 text-sm text-slate-600">
             {t(
-              query.data?.modelConfigured
-                ? "Model path configured; verify availability in the model portal."
-                : "The external Random Forest model has not been supplied. No ML probabilities are fabricated.",
+              "Both supplied models are integrated: V1 is the default and V2 is experimental. At supported locations with prepared datasets, extract environmental inputs, review them, then run the selected model.",
+            )}
+          </p>
+          <p className="mt-3 text-sm text-slate-600">
+            {t(
+              "Results indicate experimental landslide susceptibility, not the probability or timing of an imminent landslide. Model assessment does not automatically publish a warning or dispatch a team.",
             )}
           </p>
           <p className="mt-3 text-sm text-slate-600">
