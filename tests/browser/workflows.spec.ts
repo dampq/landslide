@@ -1292,3 +1292,53 @@ test("inline team setup preserves a corrected destination and review note", asyn
     page.getByText("Presentation practice team · Assigned", { exact: true }),
   ).toBeVisible();
 });
+
+test("map assessment selection inspects data explicitly and reports unavailable rasters", async ({
+  page,
+}) => {
+  await login(page, "official");
+  let extractions = 0;
+  await page.route("**/api/assessment/features", (route) => {
+    extractions++;
+    return route.fulfill({
+      status: 503,
+      json: {
+        detail:
+          "Raster data are not prepared. Run npm run prepare:rasters on this server.",
+      },
+    });
+  });
+  await page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("link", { name: "GIS map", exact: true })
+    .click();
+  await page
+    .locator(".leaflet-container")
+    .click({ position: { x: 140, y: 120 } });
+  const inspect = page.getByRole("link", {
+    name: /Inspect environmental inputs here/,
+  });
+  await expect(inspect).toBeVisible();
+  await inspect.click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Location-based assessment",
+      exact: true,
+    }),
+  ).toBeVisible();
+  const url = new URL(page.url());
+  await expect(
+    page.getByLabel("Assessment latitude", { exact: true }),
+  ).toHaveValue(url.searchParams.get("lat")!);
+  expect(extractions).toBe(0);
+  await page
+    .getByRole("button", { name: "Extract environmental inputs", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Raster data are not prepared",
+  );
+  expect(extractions).toBe(1);
+  await expect(
+    page.getByRole("button", { name: "Run inspected assessment", exact: true }),
+  ).toHaveCount(0);
+});

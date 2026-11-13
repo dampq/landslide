@@ -10,3 +10,6 @@ skops==0.11.0
 pytest==8.3.5
 
 pandas==3.1.1
+rasterio==1.5.2
+shapely==2.2.0
+pyproj==3.8.0

@@ -1,5 +1,8 @@
 import RequestError from "./components/RequestError";
 import IncidentResponse from "./components/IncidentResponse";
+import CoordinateAssessment, {
+  AssessmentPicker,
+} from "./components/CoordinateAssessment";
 import { locale } from "./i18n";
 import Basemap, { type BasemapStatus } from "./components/Basemap";
 import {
@@ -1182,7 +1185,7 @@ function Exposure({ locationId }: { locationId: string }) {
   );
 }
 export function MapPage() {
-  const { t } = useApp();
+  const { t, account } = useApp();
   const [tileStatus, setTileStatus] = useState<BasemapStatus>(null);
   const [provider, setProvider] = useState(
     localStorage.getItem("ashtaraksha-basemap") ||
@@ -1200,6 +1203,10 @@ export function MapPage() {
   ]);
   const query = useData("/api/gis?layers=" + layers.join(","));
   const [selected, setSelected] = useState("");
+  const [assessmentPoint, setAssessmentPoint] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const color = (p: any) =>
     p.level === "Critical" || p.status === "Blocked"
       ? "#dc2626"
@@ -1275,6 +1282,11 @@ export function MapPage() {
       <Card className="overflow-hidden">
         <div className="h-[540px] max-h-[70vh]">
           <MapContainer center={[25.9, 92.5]} zoom={6} scrollWheelZoom>
+            {account?.role !== "citizen" && (
+              <AssessmentPicker
+                onPick={(lat, lng) => setAssessmentPoint({ lat, lng })}
+              />
+            )}
             <Basemap
               key={`${provider}:${retry}`}
               provider={provider}
@@ -1323,6 +1335,18 @@ export function MapPage() {
           "Reference boundaries are approximate cartographic context, not authoritative boundary claims. No street or terrain detail is implied.",
         )}
       </p>
+      {account?.role !== "citizen" && (
+        <p className="my-3">{t("Map assessment selection guidance")}</p>
+      )}
+      {assessmentPoint && account?.role !== "citizen" && (
+        <Link
+          className="my-3 inline-block text-blue-700 underline"
+          to={`/prediction?lat=${assessmentPoint.lat}&lng=${assessmentPoint.lng}`}
+        >
+          {t("Inspect environmental inputs here")} (
+          {assessmentPoint.lat.toFixed(6)}, {assessmentPoint.lng.toFixed(6)})
+        </Link>
+      )}
       {selected && <Exposure locationId={selected} />}
     </>
   );
@@ -1672,6 +1696,7 @@ export function Prediction() {
             <option value="2">{t("V2 — experimental comparison")}</option>
           </Select>
         </Field>
+        <CoordinateAssessment version={version} />
         <ModelExamples version={version} />
         <p className="my-3 text-sm">{t("Experimental score notice")}</p>
         {version === "2" && (

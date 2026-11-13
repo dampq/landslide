@@ -24,7 +24,7 @@ report = {'started_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(
           'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
           'working_tree_status': subprocess.check_output(['git', 'status', '--short'], cwd=ROOT, text=True),
           'dependencies': {p: importlib.metadata.version(p) for p in
-                           ['numpy', 'pandas', 'scipy', 'scikit-learn', 'joblib', 'fastapi', 'pydantic', 'httpx', 'pytest']},
+                           ['numpy', 'pandas', 'scipy', 'scikit-learn', 'joblib', 'fastapi', 'pydantic', 'httpx', 'pytest', 'rasterio', 'shapely', 'pyproj']},
           'source_sha256': {}, 'commands': []}
 for base in ['backend/api', 'src', 'tests', 'scripts']:
     for p in (ROOT / base).rglob('*'):
@@ -34,6 +34,8 @@ for name in ['backend/requirements.lock', 'package-lock.json', 'model-handoff/ma
     report['source_sha256'][name] = sha(ROOT / name)
 archive = ROOT / 'model-handoff/Ashtaraksha_Teammate_Handoff.zip'
 report['archive_sha256'] = sha(archive)
+report['extraction_handoff_sha256'] = sha(ROOT / 'model-handoff/Feature_Extraction_Handoff.zip')
+report['real_raster_tests_note'] = 'Synthetic raster tests are separate from the real-data verification command, npm run prepare:rasters.'
 manifest = json.loads((ROOT / 'model-handoff/manifest.json').read_text())
 report['models'] = manifest
 with zipfile.ZipFile(archive) as z:
@@ -48,7 +50,7 @@ commands = [
     [sys.executable, '-m', 'pip', 'check'],
     ['npm', 'run', 'build'], ['npm', 'run', 'check:i18n'], ['npm', 'run', 'test:config'],
     [sys.executable, '-m', 'pytest', 'tests/test_api.py', 'tests/test_python_setup.py',
-     'tests/test_database_startup.py', 'tests/test_diagnostics.py', '-q', '--junitxml=' + str(OUT / 'pytest.xml')],
+     'tests/test_database_startup.py', 'tests/test_diagnostics.py', 'tests/test_environmental.py', '-q', '--junitxml=' + str(OUT / 'pytest.xml')],
     ['npm', 'run', 'test:e2e', '--', '--reporter=json'],
 ]
 for i, command in enumerate(commands):

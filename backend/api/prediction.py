@@ -119,7 +119,7 @@ def predict(inputs, version='1'):
     score = float(model.predict_proba(pipeline.transform(frame))[0, 1])
     if not math.isfinite(score) or not 0 <= score <= 1:
         raise HTTPException(503, 'Model returned an invalid relative score')
-    return dict(experimental_presence_background_score=score, modelVersion=version,
+    return dict(experimental_presence_background_score=score, modelArtifactChecksums={k:v for k,v in MANIFEST[version]['sha256'].items() if k.endswith(('.joblib','.json'))}, modelVersion=version,
                 model_version=version, experimental=True, operationallyValidated=False,
                 interpretation=NOTICE, notice=NOTICE, comparisonNotice=V2_NOTICE if version == '2' else '',
                 model_region='North Eastern Region of India; internal spatial evaluation only',
