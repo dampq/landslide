@@ -17,7 +17,7 @@ DATABASE_URL='postgresql+psycopg://ashtaraksha:local-development@127.0.0.1:5433/
 
 Use `admin` instead of `official` if you need Administration and data imports. Sign out and back in after promotion. If you configured a different local database password/URL, supply the matching DATABASE_URL privately rather than copying credentials into tracked files. The default `manage.py` database is the original database, so keep the clean override when administering clean-mode accounts.
 
-Officials can enter real monitoring locations, teams, roads and other records through the portals; administrators can import attributed records using the documented import format. Keep actual sources and dates. Report verification, response planning and warnings require their normal official actions; empty pages are expected until records are entered. Do not run `seed-demo`, use `setup.sh --demo`, or trigger sensor/sample-weather actions if you want only your own data.
+Report-first response can assign a team directly to confirmed incident coordinates without a monitoring-location record. Officials can enter real monitoring locations for monitoring/assessment separately, plus teams, roads and other records through the portals; administrators can import attributed records using the documented import format. Keep actual sources and dates. Report verification, response planning and warnings require their normal official actions; empty pages are expected until records are entered. Do not run `seed-demo`, use `setup.sh --demo`, or trigger sensor/sample-weather actions if you want only your own data.
 
 Both supplied models remain installed. Their explicitly labelled **Load supplied example** panel is optional, runs only on request, and never saves an example as a real assessment. For your own assessments enter genuinely sourced environmental inputs. Automatic extraction from map coordinates remains pending. Live weather/online tiles still require provider access; empty or unavailable information must not be presented as live data. The bundled geographic reference map is actual attributed cartographic context and is retained.
 
@@ -26,3 +26,13 @@ Development tests deliberately use separate `_test` and `_e2e_test` databases wi
 To inspect the previous demonstration environment, stop clean mode and run `npm run dev:all` with the original database configuration. The old database is retained as a recoverable backup, not permanently erased. To continue your own-data environment, always use `npm run dev:clean`.
 
 Validation on 13 November 2026: clean database had 0 accounts/0 records, original database remained at 0 accounts/56 records, API health confirmed PostgreSQL/PostGIS and the frontend login shell responded. Clean startup performs no seeding.
+
+## Change an existing account password
+
+Pull the latest branch update, then run this from the repository root (default local Compose credentials):
+
+```bash
+DATABASE_URL='postgresql+psycopg://ashtaraksha:local-development@127.0.0.1:5433/ashtaraksha_clean' backend/.venv/bin/python backend/manage.py set-password YOUR_EMAIL
+```
+
+The command privately prompts twice for a new 12–128 character password. Never include the password in the command or in chat. Successful changes retain the account, role and records, revoke existing sessions and write an audit event. Mismatched/invalid passwords leave the account unchanged. Sign in again with the new password. Use the matching database URL if you use a different database/password configuration.

@@ -1,0 +1,214 @@
+{
+  "started_utc": "2026-11-13T13:27:36.725418+00:00",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "python_executable": "/workspace/landslide/backend/.venv/bin/python",
+  "git_head": "1b35bf3a341b3bd3cf234ded0564a259259c83f0",
+  "working_tree_status": " M backend/api/main.py\n M scripts/check-i18n.mjs\n M src/Portal.tsx\n M src/locales/as.json\n M src/locales/en.json\n M src/locales/hi.json\n M tests/browser/workflows.spec.ts\n M tests/test_api.py\n?? src/components/IncidentResponse.tsx\n",
+  "dependencies": {
+    "numpy": "2.5.4",
+    "pandas": "3.1.1",
+    "scipy": "1.18.1",
+    "scikit-learn": "1.6.1",
+    "joblib": "1.6.0",
+    "fastapi": "0.115.12",
+    "pydantic": "2.14.3",
+    "httpx": "0.28.1",
+    "pytest": "8.3.5"
+  },
+  "source_sha256": {
+    "backend/api/weather_data.py": "f1af263f7df047862f31503aea8e27adb6d2516462d16c70f752e4b445371359",
+    "backend/api/main.py": "bf8cdd740c9e89037308381b1b81a55e49a19cd590872ff81ee24b0595eb3d28",
+    "backend/api/security.py": "40e880573f8f1bf5d0ea7ae310e97d33d6cad6577cbbd6dee987348a4880b3f6",
+    "backend/api/diagnostics.py": "031e9999974404a8de68da22177e4c0fa9c197d6659bf7d34932382abccf9fbc",
+    "backend/api/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "backend/api/prediction.py": "d75c81ecfc972c862801e833a889dd6fb67bf3074142ec53d49f70fcd45360f1",
+    "backend/api/db.py": "17cfa9e4a6c4398698d9d90f7fed8578e90a13d683d03c8148bf7f6ba7df68f0",
+    "src/lib.ts": "d17a858a1823cb12f20ee0ce941f17c22e47d29405a151881c50fb65407aad21",
+    "src/vite-env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+    "src/main.tsx": "4cf6a94d3341262ea4760bba2c7890d06071af2b36c400d3c541f12f55721d97",
+    "src/Portal.tsx": "3bcbc29803071f21660bc9b153b67f15352145d03046aea2cbc7dd2d8a3779a4",
+    "src/App.tsx": "544b9279e9a6c48c91ecf413e9778968e49afcd2d149f038babae355a79333b6",
+    "src/i18n.ts": "5e6348000037fb34880185ad6b6e63fe44d5db7176d95f90a7ad810a7656690e",
+    "src/components/ReferenceMap.tsx": "26155e740a31d4c398db7ccdd3479c415f9d78a413041692eac336b3142f4f5c",
+    "src/components/Basemap.tsx": "8192930962ec78bbf4842ea8d07d5fd1d1d001e21b10a5544e668613773080da",
+    "src/components/IncidentResponse.tsx": "1ca6ffc1e76d06d5784706cc779dd8bb049360b9a0567242082597998b0aec27",
+    "src/components/RequestError.tsx": "7276522306737071240d95d7083208acd310991519e71892ed714dfdab1a09c2",
+    "src/locales/hi.json": "87f38f2b3277746d6f05f037f03d3cea6d2a8ec85f08af4f85fd5dbccaf04b3c",
+    "src/locales/en.json": "e5649c370f2e7f3cae8588b4649c7043073a42bf3c584c157bb61e32d3c50eb4",
+    "src/locales/as.json": "aab6e6e63c9947063fd308ca00ec6fafc63dd9d651c2fe4529832bc9979f8538",
+    "src/components/ui/index.tsx": "c19342fd8abb2294bcaf1e2ffdc17cca6605707fb514c0488e7e692aca4ad7a6",
+    "tests/test_api.py": "7d9df5376679cbd20eeef8230591a0325bfcab045e28757b5ef800f7728bc740",
+    "tests/test_diagnostics.py": "93686ac4d958e448779ff836dad8bb1eedbd5da39586309c006f428c6ac2fa2c",
+    "tests/test_database_startup.py": "e94f43ee0589ac1c07ac9cc9c52f0d8c1a908b6b3558333c4378f4201e24ebf6",
+    "tests/codespaces.test.mjs": "dba114f0bb6bcc35621b18b64edbb48abc7c37bf6cb7f363c08219aa977b6735",
+    "tests/test_python_setup.py": "ac5a02e328da7e3f986384ec03d76bfc2a2228078f918a56c3c222a1e0275a73",
+    "tests/browser/workflows.spec.ts": "dd2905f55a6e5bb48d8344dc33680087f9e61d3fd923e45d4f2505197da9e93a",
+    "scripts/bootstrap-uv.py": "ca0877c626fdf56ec552ec79e4e4a8a4f7d7c43ddb2ccafdb7dd07f9f3419ec9",
+    "scripts/start-all.mjs": "ce6095791193a13c3bbb03af27c8cae3323ad1d5558f568f2572256a00037ce4",
+    "scripts/start-clean.py": "1d4fa2321c11f16bf16ffb3144e1854b59f41f49008b360f8c3a9daee94cfbec",
+    "scripts/setup.sh": "341fa3cbe2083e3cc8b73dd0eddf870bf629aca2fd8d98420beb7c2a6888e047",
+    "scripts/build-sw.mjs": "f0e4390e6b352d052c75471e9ff880054f5916bc24acf91b46d6a88acfa09066",
+    "scripts/capture-model-evidence.py": "746b904a9e637a1c40b0bc9c91f51e63a8ba903d9a0cc79eac1fe47401022456",
+    "scripts/prepare-reference-map.py": "4e2f7d1eff23fe6e75c7a42bc28587098517cfe7dd64a2cfb3cc29d59b91857e",
+    "scripts/setup-python.sh": "b54893e19c26a75be7b9dbab384f4a492fb672903608b0db1ec3b3db2de968a0",
+    "scripts/check-i18n.mjs": "06c769475c6bf7be5df2296d1e520961bffef146d231bf7a2f52616068957532",
+    "scripts/codespaces.mjs": "be4b047b8f50bc6207c421bab8a0218e74cb55316bdc27089e679f582b5f1706",
+    "scripts/prepare-e2e.py": "46993af915b16dbc1ea974df16aa2e61cf5fc3bd6664812af1de3f22e9a7b685",
+    "backend/requirements.lock": "9f8ffd1503b77bf2cc8a4c57573f6ec45a61b38d1e41dd26c28a2080398b7e02",
+    "package-lock.json": "ce6d12b8fa25ae2184cbd2191692c23ceca6c0ee3f8d557656ee9fe63eb2f06d",
+    "model-handoff/manifest.json": "577b8120ae4a4e28464babc1c7297cb9e91a8b5667a440453ff9ca3fbcba39d6"
+  },
+  "commands": [
+    {
+      "argv": [
+        "node",
+        "--version"
+      ],
+      "started_utc": "2026-11-13T13:27:36.757849+00:00",
+      "completed_utc": "2026-11-13T13:27:36.763001+00:00",
+      "exit_code": 0,
+      "log": "00.log",
+      "log_sha256": "249baf635bb43877fcb9422efa1a4904b702d0ddf14d3949b7cd0950d5229c81"
+    },
+    {
+      "argv": [
+        "npm",
+        "--version"
+      ],
+      "started_utc": "2026-11-13T13:27:36.763272+00:00",
+      "completed_utc": "2026-11-13T13:27:36.844894+00:00",
+      "exit_code": 0,
+      "log": "01.log",
+      "log_sha256": "d9f29f5aab43c8c1a8d6acc856e258b89735f541aa5e1f07b39a62f28bfa8d06"
+    },
+    {
+      "argv": [
+        "/usr/bin/chromium",
+        "--version"
+      ],
+      "started_utc": "2026-11-13T13:27:36.845396+00:00",
+      "completed_utc": "2026-11-13T13:27:36.935072+00:00",
+      "exit_code": 0,
+      "log": "02.log",
+      "log_sha256": "bfc2c7b1a858116fb29c798136ab51f73d6ac1e93ad21caec0f93a22a52e17ac"
+    },
+    {
+      "argv": [
+        "/workspace/landslide/backend/.venv/bin/python",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "started_utc": "2026-11-13T13:27:36.937715+00:00",
+      "completed_utc": "2026-11-13T13:27:37.168810+00:00",
+      "exit_code": 0,
+      "log": "03.log",
+      "log_sha256": "35bb3d1e4d1d0091788acae77c6d707f1dfb81d2384e34fd54a205f9497ce313"
+    },
+    {
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "started_utc": "2026-11-13T13:27:37.169518+00:00",
+      "completed_utc": "2026-11-13T13:27:38.808042+00:00",
+      "exit_code": 0,
+      "log": "04.log",
+      "log_sha256": "6ecdb2122fe2b1a671b42a8586b870a751e96fe706db1961c28d840e9940c426"
+    },
+    {
+      "argv": [
+        "npm",
+        "run",
+        "check:i18n"
+      ],
+      "started_utc": "2026-11-13T13:27:38.808465+00:00",
+      "completed_utc": "2026-11-13T13:27:39.263047+00:00",
+      "exit_code": 0,
+      "log": "05.log",
+      "log_sha256": "b80802f8214f336d2f39695fba613731970488c5da93b9f965de2d5b94cf4195"
+    },
+    {
+      "argv": [
+        "npm",
+        "run",
+        "test:config"
+      ],
+      "started_utc": "2026-11-13T13:27:39.263469+00:00",
+      "completed_utc": "2026-11-13T13:27:39.619776+00:00",
+      "exit_code": 0,
+      "log": "06.log",
+      "log_sha256": "e29cc2f23034886d6f5503e75f72789c981c7b684de7aa291ca4312b9698793f"
+    },
+    {
+      "argv": [
+        "/workspace/landslide/backend/.venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/test_api.py",
+        "tests/test_python_setup.py",
+        "tests/test_database_startup.py",
+        "tests/test_diagnostics.py",
+        "-q",
+        "--junitxml=/workspace/landslide/docs/evidence/20261113T132736Z/pytest.xml"
+      ],
+      "started_utc": "2026-11-13T13:27:39.620570+00:00",
+      "completed_utc": "2026-11-13T13:28:13.705866+00:00",
+      "exit_code": 0,
+      "log": "07.log",
+      "log_sha256": "f9f46343f45c485b2b87d40cd08f807b573491f6870907f5de174af8f9d13b8d"
+    },
+    {
+      "argv": [
+        "npm",
+        "run",
+        "test:e2e",
+        "--",
+        "--reporter=json"
+      ],
+      "started_utc": "2026-11-13T13:28:13.706420+00:00",
+      "completed_utc": "2026-11-13T13:29:02.247997+00:00",
+      "exit_code": 0,
+      "log": "08.log",
+      "log_sha256": "a0c1581b0e6e2a9d41fcd591c780129bcae0df21d420fb4eb6c9fd55d39f6e96"
+    }
+  ],
+  "archive_sha256": "7f4678edffefc96d7c8d4f8eb17d0e27e66353c59a3a140df93981b2af700dbd",
+  "models": {
+    "1": {
+      "folder": "Version_1_Default",
+      "suffix": "",
+      "sha256": {
+        "ashtaraksha_random_forest.joblib": "6b29b386acfa9e6434d6cf115b3340c79d4f27be577f185d6d02d702fc8e7e09",
+        "fastapi_example_v1_strict.py": "e079e8d3e8a24e6379d19c775ca22c4a53c5122e45453ef1315438371c397d51",
+        "feature_list.json": "3a9fdd4141c32e644d83ee6e35de2ec2a7380f8194a31a707744ce140d2451e5",
+        "FINAL_MODEL_HANDOFF_REPORT.md": "ba2a80d5086fbb87dc9df5466d67501567e63661f56b0e4058390568aa3ed1e2",
+        "FINAL_PROJECT_HANDOFF_REPORT.md": "c3173cb30827fdd4f3c0c9e905d676bdef54a6676bb1d3f3838c6e23b1abaaf9",
+        "model_metadata.json": "7c6c9806f4f4909e74986c344d68893bb1916e920d148f641ee355d2bbfb271e",
+        "predict.py": "d50cd7286ba9b4cdf2db8b1bbe3dbb717f38dd94af5c5d3137756dc01989b63c",
+        "preprocessing_pipeline.joblib": "88cbaa98da6fd661594deedd74b20f4977c51adaa6b7a5b05e2835b53bcb4342"
+      }
+    },
+    "2": {
+      "folder": "Version_2_Experimental",
+      "suffix": "_v2",
+      "sha256": {
+        "ashtaraksha_random_forest_v2.joblib": "63ef8df4e52fb1c6acde9584d0b8c8c4dee56cf9382454c1816f5829bfd6c329",
+        "confusion_matrix_v2.png": "93f9efcd6465062dfc8df82b8cd7d4f985b023aa83da64298575364eba1f7a89",
+        "fastapi_example_v2.py": "c48d4387eed1d63e738511e8bc8add519c50beaaf7a09130b46072cff1ad6caf",
+        "feature_importance_v2.png": "30515b2cf957225a52ebbce6daab4a68ab83178aa7f7150ced9ff0b589c0394b",
+        "feature_list_v2.json": "eb5ec3d9ab3ea7c9d1c3424421b6346a87d1e0763572b45c3721cd458065911f",
+        "model_comparison_report.md": "c26979887b86b279e60e28ee64a564980f877aecfa47f518d850a7b0f785a201",
+        "model_evaluation_report_v2.md": "f135e9df087b69f34170f270d0320a5e1b6cf2357ff18a282d8da4c185830068",
+        "model_metadata_v2.json": "5a900024eefd3f4e7fbf0b8e8b988d538fe615272315f303ca0c7b0e0b500683",
+        "predict_v2.py": "f638dd7d6bd764704e156b924ca307f7948cc937057deb776b6f0d3d3eebb585",
+        "preprocessing_pipeline_v2.joblib": "abb4283ca6b0c1b356caaa2832534690c95873a16a0a3d87a9f0bbc460e57ecb",
+        "PROJECT_DEMONSTRATION_REPORT.md": "50f4151fd67e62e9706d4973ed6f40a6a0ecd5052c8b886c3610367c8079cdbd",
+        "requirements.txt": "ed0a7e1dddfbb00b87c492283bbe9d39de1eab8e697bd3dc5c2dda99f6eef59c"
+      }
+    }
+  },
+  "artifact_checksums_verified": true,
+  "completed_utc": "2026-11-13T13:29:02.248480+00:00"
+}

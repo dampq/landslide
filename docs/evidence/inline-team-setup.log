@@ -1,0 +1,29 @@
+
+> ashtaraksha@1.0.0 test:e2e
+> playwright test --grep inline team setup|report-first|urgent unverified
+
+[2m[WebServer] [22mINFO:     Started server process [117753]
+[2m[WebServer] [22mINFO:     Waiting for application startup.
+[2m[WebServer] [22mINFO:     Application startup complete.
+[2m[WebServer] [22mINFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+[2m[WebServer] [22m(node:117785) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:117798) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:117822) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:117822) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/browser/workflows.spec.ts:1168:1 › report-first verification and assignment needs no monitoring location (2.4s)
+  ✓  2 tests/browser/workflows.spec.ts:1251:1 › urgent unverified dispatch records a reason and destination correction (1.6s)
+  ✓  3 tests/browser/workflows.spec.ts:1383:1 › inline team setup preserves a corrected destination and review note (2.2s)
+
+  3 passed (10.4s)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

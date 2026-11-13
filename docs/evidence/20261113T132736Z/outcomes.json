@@ -1,0 +1,22 @@
+{
+  "pytest": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "50",
+    "time": "33.368",
+    "timestamp": "2026-11-13T13:27:39.806055+00:00",
+    "hostname": "f0a8d3912307"
+  },
+  "playwright": {
+    "startTime": "2026-11-13T13:28:14.742Z",
+    "duration": 47480.651,
+    "expected": 25,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "all_command_exit_codes_zero": true,
+  "recorded_source_and_log_hashes_verified": true
+}
