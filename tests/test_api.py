@@ -877,3 +877,29 @@ def test_verified_incident_to_completed_response_preserves_context(actors):
     audit = actors['admin'].get('/api/admin/system').json()['audit']
     assert any(a['action']=='report:response-association' and a['target']==rid for a in audit)
     assert any(a['action']=='deployment:Completed' and a['target']==data['id'] for a in audit)
+
+
+def test_local_password_change_preserves_account_and_revokes_sessions(actors, monkeypatch):
+    saved = report(actors['citizen'])
+    new = 'new-test-password-at-least-12'
+    answers = iter([new, new])
+    monkeypatch.setattr(manage.getpass, 'getpass', lambda _: next(answers))
+    monkeypatch.setattr(sys, 'argv', ['manage.py', 'set-password', ' CITIZEN@example.test '])
+    manage.main()
+    assert actors['citizen'].get('/api/auth/me').status_code == 401
+    client = TestClient(app)
+    assert client.post('/api/auth/login', json={'email':'citizen@example.test','password':PASSWORD}).status_code == 401
+    assert client.post('/api/auth/login', json={'email':'citizen@example.test','password':new}).status_code == 200
+    assert client.get('/api/auth/me').json()['role'] == 'citizen'
+    assert any(r['id'] == saved['id'] for r in client.get('/api/records/reports').json()['items'])
+
+
+@pytest.mark.parametrize('answers', [('short','short'), ('long-enough-new-password','different-long-password')])
+def test_invalid_local_password_change_leaves_account_untouched(actors, monkeypatch, answers):
+    answers = iter(answers)
+    monkeypatch.setattr(manage.getpass, 'getpass', lambda _: next(answers))
+    monkeypatch.setattr(sys, 'argv', ['manage.py','set-password','citizen@example.test'])
+    with pytest.raises(SystemExit):
+        manage.main()
+    assert actors['citizen'].get('/api/auth/me').status_code == 200
+    assert TestClient(app).post('/api/auth/login',json={'email':'citizen@example.test','password':PASSWORD}).status_code == 200

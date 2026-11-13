@@ -26,3 +26,13 @@ Development tests deliberately use separate `_test` and `_e2e_test` databases wi
 To inspect the previous demonstration environment, stop clean mode and run `npm run dev:all` with the original database configuration. The old database is retained as a recoverable backup, not permanently erased. To continue your own-data environment, always use `npm run dev:clean`.
 
 Validation on 13 November 2026: clean database had 0 accounts/0 records, original database remained at 0 accounts/56 records, API health confirmed PostgreSQL/PostGIS and the frontend login shell responded. Clean startup performs no seeding.
+
+## Change an existing account password
+
+Pull the latest branch update, then run this from the repository root (default local Compose credentials):
+
+```bash
+DATABASE_URL='postgresql+psycopg://ashtaraksha:local-development@127.0.0.1:5433/ashtaraksha_clean' backend/.venv/bin/python backend/manage.py set-password YOUR_EMAIL
+```
+
+The command privately prompts twice for a new 12–128 character password. Never include the password in the command or in chat. Successful changes retain the account, role and records, revoke existing sessions and write an audit event. Mismatched/invalid passwords leave the account unchanged. Sign in again with the new password. Use the matching database URL if you use a different database/password configuration.

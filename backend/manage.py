@@ -3,7 +3,7 @@
 import argparse
 import getpass
 from sqlalchemy import select
-from api.db import Session, User, Record, migrate, wait_for_database
+from api.db import Session, User, Record, LoginSession, migrate, wait_for_database
 from api.security import hash_password, audit
 
 STATES = [
@@ -155,6 +155,8 @@ def main():
     promote = subs.add_parser("set-role")
     promote.add_argument("email")
     promote.add_argument("role", choices=["citizen", "official", "admin"])
+    password = subs.add_parser("set-password")
+    password.add_argument("email")
     args = parser.parse_args()
     if args.command == "check-services":
         import json
@@ -187,6 +189,20 @@ def main():
             u.role = args.role
             audit(db, None, "local:set-role", u.id)
             print("Role updated.")
+            return
+        if args.command == "set-password":
+            if not u:
+                raise SystemExit("Account not found. Register or create the account first.")
+            pw = getpass.getpass("New password (12–128 characters): ")
+            if not 12 <= len(pw) <= 128:
+                raise SystemExit("Password must contain 12–128 characters.")
+            if pw != getpass.getpass("Confirm new password: "):
+                raise SystemExit("Passwords differ. Password was not changed.")
+            u.password = hash_password(pw)
+            for session in db.scalars(select(LoginSession).where(LoginSession.user_id == u.id)):
+                db.delete(session)
+            audit(db, None, "local:set-password", u.id)
+            print("Password changed. Existing sessions signed out; sign in with the new password.")
             return
         if u:
             raise SystemExit("Account already exists; use set-role.")
