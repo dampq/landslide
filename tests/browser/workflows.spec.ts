@@ -958,6 +958,40 @@ test("supplied V1 and V2 scores use their own feature forms and preserve imputat
     .getByRole("button", { name: "Submit prediction", exact: true })
     .click();
   await expect(page.getByText(/Relative score 0.7506/)).toBeVisible();
+  const history = page.getByRole("region", {
+    name: "Prediction history",
+    exact: true,
+  });
+  await expect(
+    history.getByText("Handoff test example; not a field observation", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(history.getByText(/^0\.751/)).toBeVisible();
+  await expect(
+    history.getByText("Manually entered environmental inputs", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    history.getByText(/not the percentage chance of a landslide/),
+  ).toBeVisible();
+  await expect(
+    history.getByText("worldcover class", { exact: true }),
+  ).toBeHidden();
+  await history.locator("summary", { hasText: "Assessment details" }).click();
+  await expect(
+    history.getByText("worldcover class", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    history.getByText("No model-filled inputs were reported.", { exact: true }),
+  ).toBeVisible();
+  await history
+    .getByRole("textbox", { name: "Search assessments" })
+    .fill("unmatched-assessment-search");
+  await expect(
+    history.getByText("No assessments match your search.", { exact: true }),
+  ).toBeVisible();
+  await history.getByRole("textbox", { name: "Search assessments" }).fill("");
+  await expect(history.getByText(/^0\.751/)).toBeVisible();
   await page.getByLabel("Model version", { exact: true }).selectOption("2");
   await expect(page.locator('input[name="aspect_cos"]')).toBeVisible();
   await page.locator('input[name="worldcover_class"]').fill("10");
@@ -970,52 +1004,69 @@ test("supplied V1 and V2 scores use their own feature forms and preserve imputat
   await page
     .getByRole("button", { name: "Submit prediction", exact: true })
     .click();
-  await expect(page.getByText(/Imputed fields: clay_fraction/)).toBeVisible();
+  await expect(page.locator(".success").getByText(/Imputed fields: clay_fraction/)).toBeVisible();
   await expect(page.getByText(/Relative score/).first()).toBeVisible();
 });
 
-test("supplied examples reproduce V1 reference without a monitoring location", async ({
+test("model evaluation is collapsed and supplied references remain available through the API", async ({
   page,
 }) => {
   await login(page, "official");
   await page
     .getByRole("link", { name: "Model integration", exact: true })
     .click();
-  await page
-    .getByRole("button", { name: "Load supplied example", exact: true })
-    .click();
   await expect(
-    page.getByText("Expected reference score: 0.7506392613449581", {
-      exact: true,
-    }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Run supplied example", exact: true })
-    .click();
+    page.getByText("Supplied demonstration example", { exact: true }),
+  ).toHaveCount(0);
   await expect(
-    page.getByRole("status").filter({ hasText: "Relative score 0.75063926" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("columnheader", { name: "Recall", exact: true }),
-  ).toBeVisible();
-  await page.getByLabel("Model version", { exact: true }).selectOption("2");
+    page.getByRole("button", { name: "Load supplied example", exact: true }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Run supplied example", exact: true }),
   ).toHaveCount(0);
-  await page
-    .getByRole("button", { name: "Load supplied example", exact: true })
-    .click();
+  const evaluation = page.locator("details").filter({
+    has: page.locator("summary", {
+      hasText: "Model evaluation and limitations",
+    }),
+  });
+  await expect(evaluation).not.toHaveAttribute("open", "");
+  const recall = evaluation.getByRole("columnheader", {
+    name: "Recall",
+    exact: true,
+  });
+  await expect(recall).toBeHidden();
+  await evaluation.locator("summary").click();
+  await expect(recall).toBeVisible();
   await expect(
-    page.getByText("Expected reference score: Not provided", { exact: true }),
+    evaluation.getByText(/no independent validation is supplied/),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Run supplied example", exact: true })
-    .click();
-  await expect(
-    page
-      .getByRole("status")
-      .filter({ hasText: "Supplied demonstration example" }),
-  ).toBeVisible();
+  await evaluation.locator("summary").press("Enter");
+  await expect(recall).toBeHidden();
+
+  // Reference inference stays tested without exposing the demonstration on the page.
+  for (const version of ["1", "2"]) {
+    const exampleResponse = await page.request.get(
+      `/api/model/examples/${version}`,
+    );
+    expect(exampleResponse.ok()).toBeTruthy();
+    const example = await exampleResponse.json();
+    const runResponse = await page.request.post(
+      `/api/model/examples/${version}/run`,
+      { data: {} },
+    );
+    expect(runResponse.ok()).toBeTruthy();
+    const result = await runResponse.json();
+    expect(result.assessmentMode).toBe("supplied-example");
+    if (version === "1") {
+      expect(example.referenceScore).toBe(0.7506392613449581);
+      expect(result.experimental_presence_background_score).toBeCloseTo(
+        example.referenceScore,
+        14,
+      );
+    } else {
+      expect(example.referenceScore).toBeNull();
+    }
+  }
 });
 
 test("report-first verification and assignment needs no monitoring location", async ({
