@@ -464,5 +464,8 @@
   "Assessment details": "आकलन का विवरण",
   "Environmental inputs": "पर्यावरणीय मान",
   "Assessment ID": "आकलन आईडी",
-  "None": "कोई नहीं"
+  "None": "कोई नहीं",
+  "Explore environmental assessments for your locations.": "अपने स्थानों के पर्यावरणीय आकलन देखें।",
+  "For reference, not an official warning.": "संदर्भ के लिए, आधिकारिक चेतावनी नहीं।",
+  "View assessments": "आकलन देखें"
 }

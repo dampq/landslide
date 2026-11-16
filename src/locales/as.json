@@ -464,5 +464,8 @@
   "Assessment details": "মূল্যায়নৰ সবিশেষ",
   "Environmental inputs": "পৰিৱেশগত মান",
   "Assessment ID": "মূল্যায়নৰ আইডি",
-  "None": "নাই"
+  "None": "নাই",
+  "Explore environmental assessments for your locations.": "আপোনাৰ স্থানসমূহৰ পৰিৱেশগত মূল্যায়ন চাওক।",
+  "For reference, not an official warning.": "সন্দৰ্ভৰ বাবে, আনুষ্ঠানিক সতৰ্কবাণী নহয়।",
+  "View assessments": "মূল্যায়ন চাওক"
 }

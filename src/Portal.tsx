@@ -288,17 +288,19 @@ export function Dashboard() {
         <Card className="p-5">
           <h2 className="font-bold">{t("Model integration")}</h2>
           <p className="mt-3 text-sm text-slate-600">
-            {t(
-              query.data?.modelConfigured
-                ? "Model path configured; verify availability in the model portal."
-                : "The external Random Forest model has not been supplied. No ML probabilities are fabricated.",
-            )}
+            {t("Explore environmental assessments for your locations.")}
           </p>
-          <p className="mt-3 text-sm text-slate-600">
-            {t(
-              "No satellite or physical sensor feed is claimed to be live. OpenStreetMap and weather access depend on network availability.",
-            )}{" "}
+          <p className="mt-2 text-xs text-slate-500">
+            {t("For reference, not an official warning.")}
           </p>
+          {account?.role !== "citizen" && (
+            <Link
+              className="mt-5 inline-block text-sm font-medium text-blue-700 hover:underline"
+              to="/prediction"
+            >
+              {t("View assessments")}
+            </Link>
+          )}
         </Card>
       </div>
       <Card className="mt-5 p-5">
