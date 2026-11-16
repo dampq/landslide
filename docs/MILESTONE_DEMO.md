@@ -2,14 +2,13 @@
 
 This milestone uses the unchanged supplied models. Automatic map-based feature extraction remains pending; neither demonstration scores nor response planning claim imminent-landslide prediction.
 
-## Model examples and evaluation
+## Model assessment and evaluation
 
-1. Sign in as an official or administrator and open **Model integration**. V1 is the default.
-2. Select **Load supplied example**. Inspect the exact supplied inputs and units before running. The V1 example is event_id=467 from `FINAL_MODEL_HANDOFF_REPORT.md`; expected reference score is `0.7506392613449581`.
-3. Select **Run supplied example**. The backend uses V1's supplied estimator and fitted preprocessing pipeline. The displayed score rounds to `0.75063926`. No monitoring location is required, no example is associated with a real location, and no example result is persisted as a real assessment or warning.
-4. Select V2. The previous example/result clears. Load the exact V2 request documented in `TEAMMATE_INSTRUCTIONS.md` and run it using the V2 estimator/pipeline. The supplied instructions do **not** provide an expected score for that request; the UI says **Not provided**. The report's separate V2 event_id=467 reference result cannot be claimed for this different example. Do not fabricate its missing original feature row.
-5. Inspect reported evaluation: precision, recall, F1, score threshold 0.5, 358 out-of-fold evaluated rows, 179 fatal-event records and 179 unknown-background samples. The model metadata includes matched spatial folds and the validation method. There is no independent test-set size supplied. These are teammate-reported results, not a new website evaluation. Precision alone does not establish suitability, and scores are not directly interchangeable or calibrated probabilities.
-6. The manual environmental assessment form remains separate. V1 blocks missing required fields. V2 supports explicit null continuous values through its original fitted imputers and reports imputed fields. Never type demo inputs into a real-location assessment and present them as extracted data.
+1. Sign in as an official or administrator and open **Model integration**. V1 is the default. The supplied demonstration example panel has been removed.
+2. Expand **Model evaluation and limitations** to inspect reported precision, recall, F1, score threshold 0.5 and 358 out-of-fold evaluated rows: 179 fatal-event records and 179 unknown-background samples. The model metadata includes matched spatial folds and the validation method. No independent test-set size is supplied. These are teammate-reported results, not a new website evaluation. Precision alone does not establish suitability, and scores are not directly interchangeable or calibrated probabilities.
+3. Use the location-based environmental assessment workflow with genuinely sourced inputs. V1 blocks missing required fields. V2 supports explicit null continuous values through its original fitted imputers and reports imputed fields. Never present demonstration inputs as extracted location data.
+
+The trained models, fitted preprocessing pipelines and reference API tests are retained. V1's event_id=467 reference score remains `0.7506392613449581`; the supplied V2 example request has no reported reference score. Reference inference is tested through the API without displaying examples on this page.
 
 ## Report-first response (current workflow)
 

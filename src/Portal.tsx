@@ -1513,72 +1513,14 @@ export function Weather() {
   );
 }
 
-function ModelExamples({ version }: { version: string }) {
+function ModelEvaluation() {
   const { t } = useApp();
   const comparison = useData("/api/model/comparison");
-  const [example, setExample] = useState<any>(null),
-    [result, setResult] = useState<any>(null);
-  const job = useAction();
-  useEffect(() => {
-    setExample(null);
-    setResult(null);
-  }, [version]);
   return (
-    <Card className="my-5 p-5">
-      <h2 className="font-bold">{t("Supplied demonstration example")}</h2>
-      <p>{t("Example assessment notice")}</p>
-      <Button
-        disabled={job.busy}
-        onClick={() =>
-          job.run(async () => {
-            setResult(null);
-            setExample(await api(`/api/model/examples/${version}`));
-          }, "")
-        }
-      >
-        {t("Load supplied example")}
-      </Button>
-      {example?.modelVersion === version && (
-        <>
-          <p className="my-3 text-sm">{example.reference}</p>
-          <dl>
-            {Object.entries(example.inputs).map(([name, value]) => (
-              <div key={name} className="break-words">
-                {name} (
-                {example.features.find((f: any) => f.name === name)?.unit}):{" "}
-                {String(value)}
-              </div>
-            ))}
-          </dl>
-          <p>
-            {t("Expected reference score")}:{" "}
-            {example.referenceScore ?? t("Not provided")}
-          </p>
-          <Button
-            disabled={job.busy}
-            onClick={() =>
-              job.run(async () => {
-                setResult(await post(`/api/model/examples/${version}/run`, {}));
-              }, "")
-            }
-          >
-            {t("Run supplied example")}
-          </Button>
-        </>
-      )}
-      {result?.modelVersion === version && (
-        <div role="status" className="success my-3">
-          <b>
-            {t("Supplied demonstration example")}: {t("Relative score")}{" "}
-            {result.experimental_presence_background_score.toFixed(8)}
-          </b>
-          <p>
-            {t("Imputed fields")}: {result.imputed_fields.join(", ") || "—"}
-          </p>
-          <p>{t("Experimental score notice")}</p>
-        </div>
-      )}
-      <Result job={job} />
+    <details className="my-5 rounded-xl border border-slate-200 p-5">
+      <summary className="cursor-pointer font-bold">
+        {t("Model evaluation and limitations")}
+      </summary>
       <h2 className="mt-5 font-bold">{t("Reported spatial evaluation")}</h2>
       <p>{t("Evaluation comparison notice")}</p>
       <Load query={comparison} />
@@ -1636,7 +1578,198 @@ function ModelExamples({ version }: { version: string }) {
         </p>
       ))}
       <p>{t("Extraction pending notice")}</p>
-    </Card>
+    </details>
+  );
+}
+
+function PredictionHistory({
+  query,
+}: {
+  query: ReturnType<typeof useData<{ items: Row[] }>>;
+}) {
+  const { t } = useApp();
+  const locations = useData("/api/records/locations");
+  const [search, setSearch] = useState("");
+  const locationName = (row: Row) =>
+    locations.data?.items.find(
+      (location: Row) => location.id === row.locationId,
+    )?.name;
+  const items = query.data?.items.filter((row: Row) =>
+    [
+      locationName(row),
+      row.locationId,
+      row.source,
+      row.id,
+      row.modelVersion,
+      typeof row.lat === "number" ? row.lat.toFixed(5) : "",
+      typeof row.lng === "number" ? row.lng.toFixed(5) : "",
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(search.trim().toLowerCase()),
+  );
+  const date = (value: unknown) =>
+    typeof value === "number" && Number.isFinite(value)
+      ? time(value)
+      : t("Not provided");
+  return (
+    <section aria-label={t("Prediction history")} className="mt-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold">{t("Prediction history")}</h2>
+        <div className="flex flex-wrap gap-2">
+          <Input
+            aria-label={t("Search assessments")}
+            placeholder={t("Search assessments")}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <Export kind="predictions" />
+          <Button variant="outline" onClick={query.refresh}>
+            {t("Refresh")}
+          </Button>
+        </div>
+      </div>
+      <p className="my-3 text-sm text-slate-600">
+        {t("History score guidance")}
+      </p>
+      <Load query={query} />
+      <Load query={locations} />
+      {items?.length === 0 && (
+        <p className="rounded-xl border border-slate-200 p-5">
+          {t(
+            query.data?.items.length
+              ? "No assessments match your search."
+              : "No saved assessments yet. Run an assessment to see it here.",
+          )}
+        </p>
+      )}
+      <div className="space-y-4">
+        {items?.map((row: Row) => {
+          const score = row.experimental_presence_background_score;
+          const imputed = Array.isArray(row.imputed_fields)
+            ? row.imputed_fields
+            : [];
+          return (
+            <Card key={row.id} className="min-w-0 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h3 className="break-words font-bold">
+                    {locationName(row) ||
+                      t(
+                        row.assessmentMode === "coordinate-extraction"
+                          ? "Coordinate assessment"
+                          : "Location unavailable",
+                      )}
+                  </h3>
+                  {typeof row.lat === "number" &&
+                    typeof row.lng === "number" && (
+                      <p className="text-sm text-slate-600">
+                        {t("Coordinates")}: {row.lat.toFixed(5)},{" "}
+                        {row.lng.toFixed(5)}
+                      </p>
+                    )}
+                  <p className="mt-1 text-sm text-slate-600">
+                    {t("Assessed on")}: {date(row.createdAt)}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-100 px-4 py-3">
+                  <p className="text-sm">
+                    {t("Relative susceptibility score")}
+                  </p>
+                  <p className="text-2xl font-bold tabular-nums">
+                    {typeof score === "number" && Number.isFinite(score)
+                      ? score.toFixed(3)
+                      : t("Unavailable")}
+                    <span className="ml-2 text-sm font-normal">
+                      {t("Scale: 0–1")}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-slate-500">{t("Model version")}</dt>
+                  <dd>
+                    {row.modelVersion === "1"
+                      ? t("V1 — default")
+                      : row.modelVersion === "2"
+                        ? t("V2 — experimental comparison")
+                        : row.modelVersion || t("Not provided")}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">{t("Assessment method")}</dt>
+                  <dd>
+                    {t(
+                      row.assessmentMode === "coordinate-extraction"
+                        ? "Extracted from local environmental datasets"
+                        : "Manually entered environmental inputs",
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">{t("Source")}</dt>
+                  <dd className="break-words">
+                    {row.source || t("Not provided")}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500">
+                    {t(
+                      row.assessmentMode === "coordinate-extraction"
+                        ? "Inputs extracted on"
+                        : "Feature collection time",
+                    )}
+                  </dt>
+                  <dd>{date(row.extractedAt ?? row.observedAt)}</dd>
+                </div>
+              </dl>
+              <p className="mt-3 text-sm text-slate-600">
+                {t(
+                  imputed.length
+                    ? "Some missing inputs were filled by the model. Review the details before interpreting this score."
+                    : "No model-filled inputs were reported.",
+                )}
+              </p>
+              <details className="mt-4 border-t border-slate-200 pt-3">
+                <summary className="cursor-pointer font-semibold">
+                  {t("Assessment details")}
+                </summary>
+                <p className="my-2 text-sm">
+                  {t("Imputed fields")}: {imputed.join(", ") || t("None")}
+                </p>
+                <h4 className="my-2 font-semibold">
+                  {t("Environmental inputs")}
+                </h4>
+                <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                  {Object.entries(row.inputs || {}).map(([name, value]) => (
+                    <div
+                      key={name}
+                      className="min-w-0 rounded-lg bg-slate-50 p-2"
+                    >
+                      <dt className="break-words text-slate-600">
+                        {name.replaceAll("_", " ")}
+                      </dt>
+                      <dd>
+                        {value == null ? t("Not provided") : String(value)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="mt-3 break-all text-xs text-slate-500">
+                  {t("Assessment ID")}: {row.id}
+                </p>
+                {row.locationId && (
+                  <p className="mt-1 break-all text-xs text-slate-500">
+                    {t("Location ID")}: {row.locationId}
+                  </p>
+                )}
+              </details>
+            </Card>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -1696,8 +1829,8 @@ export function Prediction() {
             <option value="2">{t("V2 — experimental comparison")}</option>
           </Select>
         </Field>
-        <CoordinateAssessment version={version} />
-        <ModelExamples version={version} />
+        <CoordinateAssessment version={version} onSaved={history.refresh} />
+        <ModelEvaluation />
         <p className="my-3 text-sm">{t("Experimental score notice")}</p>
         {version === "2" && (
           <p className="my-3 text-sm">{t("V2 comparison notice")}</p>
@@ -1753,11 +1886,7 @@ export function Prediction() {
           </div>
         )}
       </Card>
-      <RecordList
-        kind="predictions"
-        title="Prediction history"
-        editable={false}
-      />
+      <PredictionHistory query={history} />
     </>
   );
 }

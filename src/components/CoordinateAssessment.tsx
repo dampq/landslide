@@ -19,7 +19,13 @@ export function AssessmentPicker({
   return null;
 }
 
-export default function CoordinateAssessment({ version }: { version: string }) {
+export default function CoordinateAssessment({
+  version,
+  onSaved,
+}: {
+  version: string;
+  onSaved?: () => void | Promise<void>;
+}) {
   const { t } = useApp();
   const [params] = useSearchParams();
   const [lat, setLat] = useState(params.get("lat") || ""),
@@ -246,6 +252,7 @@ export default function CoordinateAssessment({ version }: { version: string }) {
                     extractionId: preview.id,
                   }),
                 );
+                await onSaved?.();
               })
             }
           >
